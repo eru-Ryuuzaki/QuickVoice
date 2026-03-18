@@ -23,3 +23,17 @@ export type TtsProvider = {
   id: string;
   synthesize: (input: TtsSynthesizeInput) => Promise<ArrayBuffer>;
 };
+
+export type SttTranscribeInput = {
+  file: File;
+};
+
+export type SttTranscribeResult = {
+  text: string;
+  raw?: unknown;
+};
+
+export type SttProvider = {
+  id: string;
+  transcribe: (input: SttTranscribeInput) => Promise<SttTranscribeResult>;
+};

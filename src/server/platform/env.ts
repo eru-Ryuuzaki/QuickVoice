@@ -3,6 +3,8 @@ export type AppConfig = {
   sttProvider: string;
   enableStt: boolean;
   enablePublicStt: boolean;
+  siliconflowApiKey: string;
+  siliconflowSttModel: string;
 };
 
 type ConfigInput = {
@@ -10,7 +12,13 @@ type ConfigInput = {
   STT_PROVIDER?: string;
   ENABLE_STT?: string;
   ENABLE_PUBLIC_STT?: string;
+  SILICONFLOW_API_KEY?: string;
+  SILICONFLOW_STT_MODEL?: string;
 };
+
+const DEFAULT_SILICONFLOW_TOKEN =
+  "sk-wtldsvuprmwltxpbspbmawtolbacghzawnjhtlzlnujjkfhh";
+const DEFAULT_SILICONFLOW_MODEL = "FunAudioLLM/SenseVoiceSmall";
 
 function parseBoolean(value: string | undefined, fallback: boolean) {
   if (value == null || value.trim() === "") {
@@ -29,5 +37,7 @@ export function loadConfig(input?: ConfigInput): AppConfig {
     sttProvider: source.STT_PROVIDER ?? "siliconflow",
     enableStt: parseBoolean(source.ENABLE_STT, true),
     enablePublicStt: parseBoolean(source.ENABLE_PUBLIC_STT, true),
+    siliconflowApiKey: source.SILICONFLOW_API_KEY ?? DEFAULT_SILICONFLOW_TOKEN,
+    siliconflowSttModel: source.SILICONFLOW_STT_MODEL ?? DEFAULT_SILICONFLOW_MODEL,
   };
 }
