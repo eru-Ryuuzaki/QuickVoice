@@ -29,6 +29,14 @@ function parseBoolean(value: string | undefined, fallback: boolean) {
   return normalized === "true" || normalized === "1" || normalized === "yes";
 }
 
+function parseString(value: string | undefined, fallback: string) {
+  if (value == null || value.trim() === "") {
+    return fallback;
+  }
+
+  return value.trim();
+}
+
 export function loadConfig(input?: ConfigInput): AppConfig {
   const source = input ?? (process.env as ConfigInput);
 
@@ -37,7 +45,13 @@ export function loadConfig(input?: ConfigInput): AppConfig {
     sttProvider: source.STT_PROVIDER ?? "siliconflow",
     enableStt: parseBoolean(source.ENABLE_STT, true),
     enablePublicStt: parseBoolean(source.ENABLE_PUBLIC_STT, true),
-    siliconflowApiKey: source.SILICONFLOW_API_KEY ?? DEFAULT_SILICONFLOW_TOKEN,
-    siliconflowSttModel: source.SILICONFLOW_STT_MODEL ?? DEFAULT_SILICONFLOW_MODEL,
+    siliconflowApiKey: parseString(
+      source.SILICONFLOW_API_KEY,
+      DEFAULT_SILICONFLOW_TOKEN,
+    ),
+    siliconflowSttModel: parseString(
+      source.SILICONFLOW_STT_MODEL,
+      DEFAULT_SILICONFLOW_MODEL,
+    ),
   };
 }
