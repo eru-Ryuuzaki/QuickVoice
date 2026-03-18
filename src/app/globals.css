@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0a0b;
+  --surface: #111113;
+  --surface-2: #17171a;
+  --text: #f4f2ee;
+  --muted: #a9a39b;
+  --line: rgba(255, 255, 255, 0.08);
+  --accent: #95f04e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(circle at top right, #1a1a1f 0%, var(--bg) 45%);
+  color: var(--text);
+  font-family: var(--font-body), monospace;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), serif;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 35%, black);
+}
