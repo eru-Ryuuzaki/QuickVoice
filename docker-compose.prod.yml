@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  quickvoice:
+    image: ${IMAGE_NAME_APP:-quickvoice:latest}
+    container_name: quickvoice_app
+    restart: always
+    ports:
+      - "4003:4003"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=4003
+      - HOSTNAME=0.0.0.0
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4003/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
