@@ -5,8 +5,15 @@ on:
     branches: ["master"]
 
 env:
-  REGISTRY_URL: crpi-c8pkxwwubdfz6rtn.cn-shanghai.personal.cr.aliyuncs.com
-  IMAGE_NAME_APP: crpi-c8pkxwwubdfz6rtn.cn-shanghai.personal.cr.aliyuncs.com/ryuuzaki/quickvoice
+  REGISTRY_URL: ${{ vars.REGISTRY_URL || 'crpi-c8pkxwwubdfz6rtn.cn-shanghai.personal.cr.aliyuncs.com' }}
+  IMAGE_NAME_APP: ${{ vars.IMAGE_NAME_APP || 'crpi-c8pkxwwubdfz6rtn.cn-shanghai.personal.cr.aliyuncs.com/ryuuzaki/quickvoice' }}
+  DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/root/quickvoice' }}
+  APP_URL: ${{ vars.APP_URL || 'https://quickvoice.ryuuzaki.top' }}
+  TTS_PROVIDER: ${{ vars.TTS_PROVIDER || 'microsoft_unofficial' }}
+  STT_PROVIDER: ${{ vars.STT_PROVIDER || 'siliconflow' }}
+  ENABLE_STT: ${{ vars.ENABLE_STT || 'true' }}
+  ENABLE_PUBLIC_STT: ${{ vars.ENABLE_PUBLIC_STT || 'true' }}
+  SILICONFLOW_STT_MODEL: ${{ vars.SILICONFLOW_STT_MODEL || 'FunAudioLLM/SenseVoiceSmall' }}
 
 jobs:
   build-and-deploy:
@@ -36,13 +43,13 @@ jobs:
       - name: Create runtime .env file
         run: |
           echo "PORT=4003" >> .env
-          echo "APP_URL=https://quickvoice.ryuuzaki.top" >> .env
-          echo "TTS_PROVIDER=microsoft_unofficial" >> .env
-          echo "STT_PROVIDER=siliconflow" >> .env
-          echo "ENABLE_STT=true" >> .env
-          echo "ENABLE_PUBLIC_STT=true" >> .env
+          echo "APP_URL=${{ env.APP_URL }}" >> .env
+          echo "TTS_PROVIDER=${{ env.TTS_PROVIDER }}" >> .env
+          echo "STT_PROVIDER=${{ env.STT_PROVIDER }}" >> .env
+          echo "ENABLE_STT=${{ env.ENABLE_STT }}" >> .env
+          echo "ENABLE_PUBLIC_STT=${{ env.ENABLE_PUBLIC_STT }}" >> .env
           echo "SILICONFLOW_API_KEY=${{ secrets.SILICONFLOW_API_KEY }}" >> .env
-          echo "SILICONFLOW_STT_MODEL=FunAudioLLM/SenseVoiceSmall" >> .env
+          echo "SILICONFLOW_STT_MODEL=${{ env.SILICONFLOW_STT_MODEL }}" >> .env
 
       - name: Copy deployment assets to server
         uses: appleboy/scp-action@master
@@ -51,7 +58,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           source: "docker-compose.prod.yml,.env"
-          target: "/root/quickvoice/"
+          target: "${{ env.DEPLOY_PATH }}/"
 
       - name: SSH to Server and Deploy
         uses: appleboy/ssh-action@master
@@ -63,7 +70,7 @@ jobs:
             echo "Login to container registry..."
             docker login --username=${{ secrets.ALIYUN_REGISTRY_USER }} --password=${{ secrets.ALIYUN_REGISTRY_PASSWORD }} ${{ env.REGISTRY_URL }}
 
-            cd /root/quickvoice
+            cd ${{ env.DEPLOY_PATH }}
 
             export IMAGE_NAME_APP=${{ env.IMAGE_NAME_APP }}:latest
 
