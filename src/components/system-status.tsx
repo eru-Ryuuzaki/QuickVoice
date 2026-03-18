@@ -1,10 +1,15 @@
+import type { PublicProviderStatus } from "@/server/providers/types";
+
 type SystemStatusProps = {
-  tts: "available" | "degraded";
-  stt: "available" | "unavailable";
+  status: PublicProviderStatus;
 };
 
-export function SystemStatus({ tts, stt }: SystemStatusProps) {
-  const statusText = `TTS ${tts.toUpperCase()} / STT ${stt.toUpperCase()}`;
+function formatState(available: boolean) {
+  return available ? "AVAILABLE" : "UNAVAILABLE";
+}
+
+export function SystemStatus({ status }: SystemStatusProps) {
+  const statusText = `TTS ${formatState(status.tts.available)} / STT ${formatState(status.stt.available)}`;
 
   return (
     <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--muted)]">
