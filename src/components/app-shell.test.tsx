@@ -1,8 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 
 import { AppShell } from "@/components/app-shell";
 
-test("renders top rail, activity rail, and two-pane work area", () => {
+test("renders top rail, activity rail, and two-pane work area", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ groups: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    ),
+  );
+
   render(
     <AppShell
       status={{
@@ -13,7 +23,11 @@ test("renders top rail, activity rail, and two-pane work area", () => {
   );
 
   expect(screen.getByText("QuickVoice")).toBeInTheDocument();
-  expect(screen.getByText("输入与参数")).toBeInTheDocument();
-  expect(screen.getByText("结果与状态")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Text to Speech" })).toBeInTheDocument();
+  expect(screen.getByText("Audio Output")).toBeInTheDocument();
   expect(screen.getByTestId("activity-rail")).toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(fetch).toHaveBeenCalled();
+  });
 });

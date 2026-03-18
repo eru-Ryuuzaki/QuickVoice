@@ -1,26 +1,42 @@
+"use client";
+
 type ModeSwitchProps = {
   activeMode: "tts" | "stt";
   sttAvailable: boolean;
+  onModeChange: (mode: "tts" | "stt") => void;
 };
 
-export function ModeSwitch({ activeMode, sttAvailable }: ModeSwitchProps) {
+function tabClassName(active: boolean) {
+  if (active) {
+    return "border-[var(--accent)] bg-[var(--accent)] text-[#151515]";
+  }
+
+  return "border-[var(--line)] text-[var(--muted)] hover:-translate-y-px hover:border-[var(--accent)]/65";
+}
+
+export function ModeSwitch({
+  activeMode,
+  sttAvailable,
+  onModeChange,
+}: ModeSwitchProps) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] p-1">
+    <div className="flex items-center gap-2 rounded border border-[var(--line)] bg-[var(--surface)] p-1.5">
       <button
-        className={`rounded px-3 py-1 text-xs transition-transform duration-150 ${
-          activeMode === "tts" ? "bg-[var(--accent)] text-[#121212]" : "text-[var(--muted)]"
-        }`}
+        aria-pressed={activeMode === "tts"}
+        className={`rounded border px-3 py-1 text-xs tracking-[0.08em] transition-all duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] ${tabClassName(activeMode === "tts")}`}
+        onClick={() => onModeChange("tts")}
         type="button"
       >
-        文字转语音
+        Text to Speech
       </button>
+
       <button
-        className={`rounded border px-3 py-1 text-xs ${
-          sttAvailable ? "border-[var(--line)] text-[var(--muted)]" : "border-[var(--line)]/60 text-[var(--muted)]/70"
-        }`}
+        aria-pressed={activeMode === "stt"}
+        className={`rounded border px-3 py-1 text-xs tracking-[0.08em] transition-all duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] ${tabClassName(activeMode === "stt")}`}
+        onClick={() => onModeChange("stt")}
         type="button"
       >
-        语音转文字{sttAvailable ? "" : "（暂不可用）"}
+        Speech to Text{sttAvailable ? "" : " (Disabled)"}
       </button>
     </div>
   );
