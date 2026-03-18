@@ -37,10 +37,11 @@ function ensureUploadMeta(file: unknown, param: string): UploadFileMeta {
     throwValidation(`${param} is required`);
   }
 
+  const upload = file as UploadFileMeta;
   const normalized: UploadFileMeta = {
-    name: file.name.trim(),
-    type: file.type.trim().toLowerCase(),
-    size: file.size,
+    name: upload.name.trim(),
+    type: upload.type.trim().toLowerCase(),
+    size: upload.size,
   };
 
   if (!normalized.name) {
