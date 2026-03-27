@@ -1,9 +1,10 @@
-import { transcribeAudio } from "@/server/core/transcribe-audio";
+﻿import { transcribeAudio } from "@/server/core/transcribe-audio";
 import type { SttProvider } from "@/server/providers/types";
 
 test("returns transcript for valid audio upload", async () => {
   const provider: SttProvider = {
-    id: "fake-stt",
+    id: "siliconflow",
+    label: "SiliconFlow",
     async transcribe() {
       return {
         text: "test transcript",
@@ -28,7 +29,8 @@ test("returns transcript for valid audio upload", async () => {
 
 test("rejects unsupported audio file upload", async () => {
   const provider: SttProvider = {
-    id: "fake-stt",
+    id: "siliconflow",
+    label: "SiliconFlow",
     async transcribe() {
       return {
         text: "never-called",

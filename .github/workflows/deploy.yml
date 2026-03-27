@@ -1,4 +1,4 @@
-name: Deploy QuickVoice
+﻿name: Deploy QuickVoice
 
 on:
   push:
@@ -13,6 +13,9 @@ env:
   STT_PROVIDER: ${{ vars.STT_PROVIDER || 'siliconflow' }}
   ENABLE_STT: ${{ vars.ENABLE_STT || 'true' }}
   ENABLE_PUBLIC_STT: ${{ vars.ENABLE_PUBLIC_STT || 'true' }}
+  ENABLE_STT_SILICONFLOW: ${{ vars.ENABLE_STT_SILICONFLOW || 'true' }}
+  ENABLE_STT_VOSK: ${{ vars.ENABLE_STT_VOSK || 'true' }}
+  VOSK_WS_URL: ${{ vars.VOSK_WS_URL || 'ws://vosk-cn:2700' }}
   SILICONFLOW_STT_MODEL: ${{ vars.SILICONFLOW_STT_MODEL || 'FunAudioLLM/SenseVoiceSmall' }}
 
 jobs:
@@ -48,6 +51,9 @@ jobs:
           echo "STT_PROVIDER=${{ env.STT_PROVIDER }}" >> .env
           echo "ENABLE_STT=${{ env.ENABLE_STT }}" >> .env
           echo "ENABLE_PUBLIC_STT=${{ env.ENABLE_PUBLIC_STT }}" >> .env
+          echo "ENABLE_STT_SILICONFLOW=${{ env.ENABLE_STT_SILICONFLOW }}" >> .env
+          echo "ENABLE_STT_VOSK=${{ env.ENABLE_STT_VOSK }}" >> .env
+          echo "VOSK_WS_URL=${{ env.VOSK_WS_URL }}" >> .env
           echo "SILICONFLOW_API_KEY=${{ secrets.SILICONFLOW_API_KEY }}" >> .env
           echo "SILICONFLOW_STT_MODEL=${{ env.SILICONFLOW_STT_MODEL }}" >> .env
 
@@ -74,10 +80,10 @@ jobs:
 
             export IMAGE_NAME_APP=${{ env.IMAGE_NAME_APP }}:latest
 
-            echo "Pull latest image..."
+            echo "Pull latest images..."
             docker compose -f docker-compose.prod.yml pull
 
-            echo "Recreate service..."
+            echo "Recreate services..."
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
             echo "Prune stale images..."

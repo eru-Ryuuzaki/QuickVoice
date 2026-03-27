@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -38,8 +38,7 @@ export function Workbench({ status }: WorkbenchProps) {
   const [ttsResult, setTtsResult] = useState<TtsResultState>(DEFAULT_TTS_RESULT);
   const [sttResult, setSttResult] = useState<SttResultState>(DEFAULT_STT_RESULT);
 
-  const activeBusy =
-    mode === "tts" ? ttsResult.loading : sttResult.loading;
+  const activeBusy = mode === "tts" ? ttsResult.loading : sttResult.loading;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-[1280px] px-4 py-6 md:px-8">
@@ -63,17 +62,14 @@ export function Workbench({ status }: WorkbenchProps) {
       <section className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_2px_1fr]">
         <div className="border border-[var(--line)] bg-[var(--surface)] p-4">
           {mode === "tts" ? (
-            <TtsForm
-              onResultChange={setTtsResult}
-              seedText={ttsSeedText}
-            />
+            <TtsForm onResultChange={setTtsResult} seedText={ttsSeedText} />
           ) : (
             <SttPanel
               onResultChange={setSttResult}
               onSendToTts={() => {
                 setMode("tts");
               }}
-              sttAvailable={status.stt.available}
+              sttStatus={status.stt}
             />
           )}
         </div>

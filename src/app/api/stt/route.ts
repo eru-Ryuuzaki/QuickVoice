@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { transcribeAudio } from "@/server/core/transcribe-audio";
 import { AppError, isAppError } from "@/server/platform/errors";
@@ -8,23 +8,32 @@ import {
 } from "@/server/platform/rate-limit";
 import { createProviderRegistry } from "@/server/providers/provider-registry";
 import { createSiliconFlowSttProvider } from "@/server/providers/stt/siliconflow";
-import type { PublicProviderStatus, SttProvider } from "@/server/providers/types";
+import { createVoskSttProvider } from "@/server/providers/stt/vosk";
+import {
+  isSttProviderId,
+  type PublicProviderStatus,
+  type SttProvider,
+  type SttProviderId,
+} from "@/server/providers/types";
 
 export const runtime = "nodejs";
 
-type SttAvailability = PublicProviderStatus["stt"];
-
 type SttRouteDeps = {
-  provider?: SttProvider;
+  providers?: Partial<Record<SttProviderId, SttProvider>>;
   limiter?: RateLimiter;
   getClientIp?: (request: Request) => string;
-  getSttAvailability?: () => Promise<SttAvailability>;
+  getPublicStatus?: () => Promise<PublicProviderStatus>;
 };
 
 const defaultLimiter = createRateLimiter({
   max: 8,
   windowMs: 60_000,
 });
+
+const defaultProviders: Record<SttProviderId, SttProvider> = {
+  siliconflow: createSiliconFlowSttProvider(),
+  vosk: createVoskSttProvider(),
+};
 
 function defaultGetClientIp(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for");
@@ -43,10 +52,14 @@ function defaultGetClientIp(request: Request) {
   return "anonymous";
 }
 
-async function defaultGetSttAvailability() {
+async function defaultGetPublicStatus() {
   const registry = createProviderRegistry();
-  const status = await registry.getPublicStatus();
-  return status.stt;
+  return await registry.getPublicStatus();
+}
+
+function readStringField(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function toErrorResponse(error: unknown) {
@@ -73,11 +86,33 @@ function toErrorResponse(error: unknown) {
   );
 }
 
+function resolveProviderId(
+  requestedProvider: string,
+  status: PublicProviderStatus["stt"],
+): SttProviderId {
+  if (!requestedProvider) {
+    return status.defaultProvider;
+  }
+
+  if (!isSttProviderId(requestedProvider)) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      `VALIDATION_ERROR: unsupported STT provider \"${requestedProvider}\"`,
+      { status: 400 },
+    );
+  }
+
+  return requestedProvider;
+}
+
 export function createSttRouteHandler(deps: SttRouteDeps = {}) {
-  const provider = deps.provider ?? createSiliconFlowSttProvider();
+  const providers = {
+    ...defaultProviders,
+    ...deps.providers,
+  };
   const limiter = deps.limiter ?? defaultLimiter;
   const getClientIp = deps.getClientIp ?? defaultGetClientIp;
-  const getSttAvailability = deps.getSttAvailability ?? defaultGetSttAvailability;
+  const getPublicStatus = deps.getPublicStatus ?? defaultGetPublicStatus;
 
   return async function POST(request: Request) {
     try {
@@ -91,16 +126,49 @@ export function createSttRouteHandler(deps: SttRouteDeps = {}) {
         );
       }
 
-      const availability = await getSttAvailability();
-      if (!availability.available) {
+      const publicStatus = await getPublicStatus();
+      if (!publicStatus.stt.available) {
         throw new AppError(
           "PROVIDER_UNAVAILABLE",
           "PROVIDER_UNAVAILABLE: stt is temporarily unavailable",
-          { status: 503, details: availability.reason },
+          { status: 503, details: publicStatus.stt.reason },
         );
       }
 
       const formData = await request.formData();
+      const providerId = resolveProviderId(
+        readStringField(formData, "provider").toLowerCase(),
+        publicStatus.stt,
+      );
+      const providerStatus = publicStatus.stt.providers.find(
+        (provider) => provider.id === providerId,
+      );
+
+      if (!providerStatus) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          `VALIDATION_ERROR: unknown STT provider \"${providerId}\"`,
+          { status: 400 },
+        );
+      }
+
+      if (!providerStatus.available) {
+        throw new AppError(
+          "PROVIDER_UNAVAILABLE",
+          `PROVIDER_UNAVAILABLE: ${providerStatus.label} is temporarily unavailable`,
+          { status: 503, details: providerStatus.reason },
+        );
+      }
+
+      const provider = providers[providerId];
+      if (!provider) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          `VALIDATION_ERROR: STT provider \"${providerId}\" is not registered`,
+          { status: 400 },
+        );
+      }
+
       const file = formData.get("file");
       if (!(file instanceof File)) {
         throw new AppError(
@@ -116,7 +184,7 @@ export function createSttRouteHandler(deps: SttRouteDeps = {}) {
         },
         {
           provider,
-          enabled: availability.available,
+          enabled: providerStatus.available,
         },
       );
 
