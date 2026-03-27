@@ -119,3 +119,54 @@ test("rejects empty final transcripts from Vosk", async () => {
     }),
   ).rejects.toThrow("PROCESSING_FAILED");
 });
+
+test("retries once when Vosk closes early before returning final text", async () => {
+  const normalizeAudio = vi.fn(async () => ({
+    pcmData: new Uint8Array([1, 2]),
+    sampleRate: 16_000,
+    channels: 1,
+    bitsPerSample: 16,
+  }));
+
+  let attempts = 0;
+  const provider = createVoskSttProvider({
+    wsUrl: "ws://vosk-cn:2700",
+    timeoutMs: 5_000,
+    maxRetries: 1,
+    normalizeAudio,
+    socketFactory: () => {
+      attempts += 1;
+
+      const socket = new FakeSocket((currentSocket, data) => {
+        if (typeof data === "string" && data.includes('"eof":1')) {
+          queueMicrotask(() => {
+            if (attempts === 1) {
+              currentSocket.emit("close", { code: 1006, reason: "" });
+              return;
+            }
+
+            currentSocket.emit("message", {
+              data: JSON.stringify({ text: "retry succeeded" }),
+            });
+          });
+        }
+      });
+
+      queueMicrotask(() => {
+        socket.emit("open", {});
+      });
+
+      return socket as unknown as WebSocket;
+    },
+  });
+
+  const result = await provider.transcribe({
+    file: new File([new Uint8Array([1, 2])], "voice.mp3", {
+      type: "audio/mpeg",
+    }),
+  });
+
+  expect(result.text).toBe("retry succeeded");
+  expect(attempts).toBe(2);
+  expect(normalizeAudio).toHaveBeenCalledTimes(1);
+});

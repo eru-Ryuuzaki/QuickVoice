@@ -12,8 +12,14 @@ type VoskSttOptions = {
   wsUrl?: string;
   chunkSize?: number;
   timeoutMs?: number;
+  maxRetries?: number;
   socketFactory?: VoskSocketFactory;
   normalizeAudio?: (file: File) => Promise<NormalizedVoskAudio>;
+};
+
+type VoskSocketPayload = {
+  text?: string;
+  result?: Array<{ word?: string }>;
 };
 
 function createDefaultSocketFactory(): VoskSocketFactory {
@@ -135,10 +141,22 @@ async function transcribeWithSocket(options: {
     socket.addEventListener("message", async (event) => {
       try {
         const rawMessage = await readSocketMessage(event.data);
-        const payload = JSON.parse(rawMessage) as { text?: string };
+        const payload = JSON.parse(rawMessage) as VoskSocketPayload;
 
         if (Object.prototype.hasOwnProperty.call(payload, "text")) {
           resolveOnce((payload.text ?? "").trim());
+          return;
+        }
+
+        if (Array.isArray(payload.result)) {
+          const resultText = payload.result
+            .map((item) => item.word?.trim() ?? "")
+            .filter(Boolean)
+            .join(" ");
+
+          if (resultText) {
+            resolveOnce(resultText);
+          }
         }
       } catch (error) {
         rejectOnce(
@@ -161,17 +179,54 @@ async function transcribeWithSocket(options: {
       );
     });
 
-    socket.addEventListener("close", () => {
+    socket.addEventListener("close", (event) => {
       if (!settled) {
+        const closeCode =
+          typeof event === "object" &&
+          event !== null &&
+          "code" in event &&
+          typeof (event as { code?: unknown }).code === "number"
+            ? (event as { code: number }).code
+            : null;
+        const closeReason =
+          typeof event === "object" &&
+          event !== null &&
+          "reason" in event &&
+          typeof (event as { reason?: unknown }).reason === "string"
+            ? (event as { reason: string }).reason.trim()
+            : "";
+
         rejectOnce(
           new AppError(
             "PROVIDER_UNAVAILABLE",
-            "PROVIDER_UNAVAILABLE: Vosk connection closed before transcription completed",
+            `PROVIDER_UNAVAILABLE: Vosk connection closed before transcription completed${
+              closeCode != null ? ` (code=${closeCode}` : ""
+            }${closeReason ? `${closeCode != null ? ", " : " ("}reason=${closeReason}` : ""}${
+              closeCode != null || closeReason ? ")" : ""
+            }`,
             { status: 503 },
           ),
         );
       }
     });
+  });
+}
+
+function isRetryableUnavailableError(error: unknown) {
+  if (!(error instanceof AppError) || error.code !== "PROVIDER_UNAVAILABLE") {
+    return false;
+  }
+
+  return (
+    error.message.includes("failed to connect to Vosk") ||
+    error.message.includes("connection closed before transcription completed") ||
+    error.message.includes("Vosk transcription timed out")
+  );
+}
+
+async function wait(ms: number) {
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
   });
 }
 
@@ -182,35 +237,52 @@ export function createVoskSttProvider(options: VoskSttOptions = {}): SttProvider
   const normalizeAudio = options.normalizeAudio ?? normalizeAudioForVosk;
   const chunkSize = Math.max(1, options.chunkSize ?? 4_096);
   const timeoutMs = Math.max(5_000, options.timeoutMs ?? 20_000);
+  const maxRetries = Math.max(0, options.maxRetries ?? 1);
 
   return {
     id: "vosk",
     label: "Vosk CN",
     async transcribe(input: SttTranscribeInput) {
       const audio = await normalizeAudio(input.file);
-      const text = await transcribeWithSocket({
-        wsUrl,
-        chunkSize,
-        timeoutMs,
-        socketFactory,
-        audio,
-      });
+      let lastError: unknown = null;
+      const totalAttempts = maxRetries + 1;
 
-      if (!text) {
-        throw new AppError(
-          "PROCESSING_FAILED",
-          "PROCESSING_FAILED: empty transcription result from Vosk",
-          { status: 502 },
-        );
+      for (let attempt = 1; attempt <= totalAttempts; attempt += 1) {
+        try {
+          const text = await transcribeWithSocket({
+            wsUrl,
+            chunkSize,
+            timeoutMs,
+            socketFactory,
+            audio,
+          });
+
+          if (!text) {
+            throw new AppError(
+              "PROCESSING_FAILED",
+              "PROCESSING_FAILED: empty transcription result from Vosk",
+              { status: 502 },
+            );
+          }
+
+          return {
+            text,
+            raw: {
+              provider: "vosk",
+              sampleRate: audio.sampleRate,
+            },
+          };
+        } catch (error) {
+          lastError = error;
+          if (!isRetryableUnavailableError(error) || attempt >= totalAttempts) {
+            throw error;
+          }
+
+          await wait(150);
+        }
       }
 
-      return {
-        text,
-        raw: {
-          provider: "vosk",
-          sampleRate: audio.sampleRate,
-        },
-      };
+      throw lastError;
     },
   };
 }
