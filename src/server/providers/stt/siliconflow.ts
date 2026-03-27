@@ -1,4 +1,4 @@
-import { loadConfig } from "@/server/platform/env";
+﻿import { loadConfig } from "@/server/platform/env";
 import { AppError } from "@/server/platform/errors";
 import type { SttProvider } from "@/server/providers/types";
 
@@ -31,6 +31,7 @@ export function createSiliconFlowSttProvider(
 
   return {
     id: "siliconflow",
+    label: "SiliconFlow",
     async transcribe(input) {
       const formData = new FormData();
       formData.append("file", input.file);

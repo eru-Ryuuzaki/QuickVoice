@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+﻿import { render, screen, waitFor } from "@testing-library/react";
 
 import { AppShell } from "@/components/app-shell";
 
@@ -17,7 +17,14 @@ test("renders top rail, activity rail, and two-pane work area", async () => {
     <AppShell
       status={{
         tts: { available: true, provider: "microsoft_unofficial" },
-        stt: { available: false, provider: "siliconflow", reason: "disabled" },
+        stt: {
+          available: true,
+          defaultProvider: "siliconflow",
+          providers: [
+            { id: "siliconflow", label: "SiliconFlow", available: true },
+            { id: "vosk", label: "Vosk CN", available: false, reason: "disabled" },
+          ],
+        },
       }}
     />,
   );
@@ -25,6 +32,7 @@ test("renders top rail, activity rail, and two-pane work area", async () => {
   expect(screen.getByText("QuickVoice")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Text to Speech" })).toBeInTheDocument();
   expect(screen.getByText("Audio Output")).toBeInTheDocument();
+  expect(screen.getByText("DEFAULT SILICONFLOW")).toBeInTheDocument();
   expect(screen.getByTestId("activity-rail")).toBeInTheDocument();
 
   await waitFor(() => {
