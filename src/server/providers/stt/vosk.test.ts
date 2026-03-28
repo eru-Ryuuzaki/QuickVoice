@@ -1,6 +1,6 @@
-﻿import {
-  createVoskSttProvider,
-} from "@/server/providers/stt/vosk";
+import { createVoskSttProvider } from "@/server/providers/stt/vosk";
+
+const VOSK_EOF_MESSAGE = '{"eof" : 1}';
 
 class FakeSocket {
   public readonly sent: Array<string | Uint8Array> = [];
@@ -49,7 +49,7 @@ test("streams normalized audio to Vosk and returns the final transcript", async 
     normalizeAudio,
     socketFactory: () => {
       socket = new FakeSocket((currentSocket, data) => {
-        if (typeof data === "string" && data.includes('"eof":1')) {
+        if (data === VOSK_EOF_MESSAGE) {
           queueMicrotask(() => {
             currentSocket.emit("message", {
               data: JSON.stringify({ text: "hello from vosk" }),
@@ -77,7 +77,7 @@ test("streams normalized audio to Vosk and returns the final transcript", async 
   expect(socket?.sent[0]).toBe(JSON.stringify({ config: { sample_rate: 16_000 } }));
   expect(socket?.sent[1]).toEqual(new Uint8Array([1, 2]));
   expect(socket?.sent[2]).toEqual(new Uint8Array([3, 4]));
-  expect(socket?.sent[3]).toBe(JSON.stringify({ eof: 1 }));
+  expect(socket?.sent[3]).toBe(VOSK_EOF_MESSAGE);
 });
 
 test("rejects empty final transcripts from Vosk", async () => {
@@ -94,7 +94,7 @@ test("rejects empty final transcripts from Vosk", async () => {
     normalizeAudio,
     socketFactory: () => {
       const socket = new FakeSocket((currentSocket, data) => {
-        if (typeof data === "string" && data.includes('"eof":1')) {
+        if (data === VOSK_EOF_MESSAGE) {
           queueMicrotask(() => {
             currentSocket.emit("message", {
               data: JSON.stringify({ text: "" }),
@@ -138,7 +138,7 @@ test("retries once when Vosk closes early before returning final text", async ()
       attempts += 1;
 
       const socket = new FakeSocket((currentSocket, data) => {
-        if (typeof data === "string" && data.includes('"eof":1')) {
+        if (data === VOSK_EOF_MESSAGE) {
           queueMicrotask(() => {
             if (attempts === 1) {
               currentSocket.emit("close", { code: 1006, reason: "" });

@@ -22,6 +22,9 @@ type VoskSocketPayload = {
   result?: Array<{ word?: string }>;
 };
 
+// The official vosk-server websocket handler compares control messages by exact string.
+const VOSK_EOF_MESSAGE = '{"eof" : 1}';
+
 function createDefaultSocketFactory(): VoskSocketFactory {
   return (url) => {
     if (typeof WebSocket === "undefined") {
@@ -126,7 +129,7 @@ async function transcribeWithSocket(options: {
           );
         }
 
-        socket.send(JSON.stringify({ eof: 1 }));
+        socket.send(VOSK_EOF_MESSAGE);
       } catch (error) {
         rejectOnce(
           new AppError(
