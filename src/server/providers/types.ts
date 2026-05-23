@@ -1,16 +1,15 @@
-﻿export type AvailabilityReason = "disabled" | "unconfigured" | "unavailable";
+export type AvailabilityReason = "disabled" | "unconfigured" | "unavailable";
 
 export type ProviderAvailability = {
   available: boolean;
   reason?: AvailabilityReason;
 };
 
-export const STT_PROVIDER_IDS = ["siliconflow", "vosk"] as const;
-
+export const STT_PROVIDER_IDS = ["volcengine", "vosk"] as const;
 export type SttProviderId = (typeof STT_PROVIDER_IDS)[number];
 
 export const STT_PROVIDER_LABELS: Record<SttProviderId, string> = {
-  siliconflow: "SiliconFlow",
+  volcengine: "Volcengine",
   vosk: "Vosk CN",
 };
 
@@ -18,19 +17,56 @@ export function isSttProviderId(value: string): value is SttProviderId {
   return STT_PROVIDER_IDS.includes(value as SttProviderId);
 }
 
-export type PublicSttProviderStatus = ProviderAvailability & {
-  id: SttProviderId;
-  label: string;
+export const TTS_PROVIDER_IDS = ["minimax", "microsoft_unofficial"] as const;
+export type TtsProviderId = (typeof TTS_PROVIDER_IDS)[number];
+
+export const TTS_PROVIDER_LABELS: Record<TtsProviderId, string> = {
+  minimax: "MiniMax",
+  microsoft_unofficial: "Microsoft Unofficial",
 };
+
+export function isTtsProviderId(value: string): value is TtsProviderId {
+  return TTS_PROVIDER_IDS.includes(value as TtsProviderId);
+}
+
+export type PublicSelectableProviderStatus<TId extends string> =
+  ProviderAvailability & {
+    id: TId;
+    label: string;
+  };
+
+export type PublicSttProviderStatus =
+  PublicSelectableProviderStatus<SttProviderId>;
+
+export type PublicTtsProviderStatus =
+  PublicSelectableProviderStatus<TtsProviderId>;
 
 export type PublicSttStatus = ProviderAvailability & {
   defaultProvider: SttProviderId;
   providers: PublicSttProviderStatus[];
 };
 
+export type PublicTtsStatus = ProviderAvailability & {
+  defaultProvider: TtsProviderId;
+  providers: PublicTtsProviderStatus[];
+};
+
+export type PublicSummaryModelStatus = {
+  id: string;
+  label: string;
+  default: boolean;
+};
+
+export type PublicSummaryStatus = ProviderAvailability & {
+  provider: "openai";
+  defaultModel: string;
+  models: PublicSummaryModelStatus[];
+};
+
 export type PublicProviderStatus = {
-  tts: ProviderAvailability & { provider: string };
+  tts: PublicTtsStatus;
   stt: PublicSttStatus;
+  summary: PublicSummaryStatus;
 };
 
 export type TtsSynthesizeInput = {
@@ -43,7 +79,8 @@ export type TtsSynthesizeInput = {
 };
 
 export type TtsProvider = {
-  id: string;
+  id: TtsProviderId;
+  label: string;
   synthesize: (input: TtsSynthesizeInput) => Promise<ArrayBuffer>;
 };
 
@@ -60,4 +97,24 @@ export type SttProvider = {
   id: SttProviderId;
   label: string;
   transcribe: (input: SttTranscribeInput) => Promise<SttTranscribeResult>;
+};
+
+export type SummaryInput = {
+  transcript: string;
+  model: string;
+};
+
+export type SummaryResult = {
+  title: string;
+  summary: string;
+  keyPoints: string[];
+  actionItems: string[];
+  keywords: string[];
+  cleanTranscript: string;
+  model: string;
+};
+
+export type SummaryProvider = {
+  id: "openai";
+  summarize: (input: SummaryInput) => Promise<SummaryResult>;
 };
