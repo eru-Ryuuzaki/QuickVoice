@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
+import { ModelInput } from "@/components/model-input";
 import type { SttResultState } from "@/components/stt/transcription-result";
 import type {
   PublicProviderStatus,
@@ -25,6 +26,7 @@ export function SttPanel({
   onResultChange,
 }: SttPanelProps) {
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [model, setModel] = useState(sttStatus.defaultModel);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const resolvedProvider = useMemo(() => {
@@ -39,6 +41,10 @@ export function SttPanel({
   }, [sttStatus.defaultProvider, sttStatus.providers]);
 
   const [providerId, setProviderId] = useState<SttProviderId>(resolvedProvider);
+
+  useEffect(() => {
+    setModel(sttStatus.defaultModel);
+  }, [sttStatus.defaultModel]);
 
   useEffect(() => {
     setProviderId(resolvedProvider);
@@ -69,6 +75,7 @@ export function SttPanel({
     const formData = new FormData();
     formData.set("file", audioFile);
     formData.set("provider", providerId);
+    formData.set("model", model);
 
     setIsSubmitting(true);
     onResultChange({
@@ -150,6 +157,14 @@ export function SttPanel({
           ))}
         </select>
       </label>
+
+      <ModelInput
+        defaultModel={sttStatus.defaultModel}
+        disabled={!sttStatus.available || isSubmitting}
+        label="STT Model"
+        onModelChange={setModel}
+        storageKey="quickvoice.stt.model"
+      />
 
       <label className="block">
         <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">

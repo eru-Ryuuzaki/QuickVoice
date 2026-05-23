@@ -22,7 +22,7 @@ function getDefaults() {
     accessKeyId: config.volcengineAccessKeyId,
     secretAccessKey: config.volcengineSecretAccessKey,
     appId: config.volcengineSttAppId,
-    resourceId: config.volcengineSttResourceId,
+    resourceId: config.volcengineSttModel,
     endpoint: config.volcengineSttEndpoint,
   };
 }
@@ -52,6 +52,7 @@ export function createVolcengineSttProvider(
 
       const formData = new FormData();
       formData.append("file", input.file);
+      const requestResourceId = input.model.trim() || resourceId;
 
       const response = await fetchImpl(endpoint, {
         method: "POST",
@@ -59,7 +60,7 @@ export function createVolcengineSttProvider(
           "X-Api-Access-Key": accessKeyId,
           "X-Api-Secret-Key": secretAccessKey,
           "X-Api-App-Key": appId,
-          "X-Api-Resource-Id": resourceId,
+          "X-Api-Resource-Id": requestResourceId,
         },
         body: formData,
       });

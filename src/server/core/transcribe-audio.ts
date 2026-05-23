@@ -7,6 +7,7 @@ import type {
 
 type TranscribeAudioInput = {
   file: File;
+  model?: string;
 };
 
 type TranscribeAudioDeps = {
@@ -27,5 +28,8 @@ export async function transcribeAudio(
   }
 
   assertAudioUpload(input.file);
-  return deps.provider.transcribe({ file: input.file });
+  return deps.provider.transcribe({
+    file: input.file,
+    model: input.model?.trim() ?? "",
+  });
 }

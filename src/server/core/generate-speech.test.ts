@@ -59,3 +59,35 @@ test("splits long text and synthesizes every chunk", async () => {
   expect(synthesize).toHaveBeenCalledTimes(3);
   expect(decoded).toBe(originalText);
 });
+
+test("passes the requested model to the TTS provider", async () => {
+  const synthesize = vi.fn(async () =>
+    new TextEncoder().encode("audio").buffer,
+  );
+
+  const provider: TtsProvider = {
+    id: "minimax",
+    label: "MiniMax",
+    synthesize,
+  };
+
+  await generateSpeech(
+    {
+      text: "hello",
+      voice: "zh-CN-XiaoxiaoNeural",
+      model: "speech-custom",
+      rate: "1.0",
+      pitch: "0",
+      style: "general",
+    },
+    {
+      provider,
+    },
+  );
+
+  expect(synthesize).toHaveBeenCalledWith(
+    expect.objectContaining({
+      model: "speech-custom",
+    }),
+  );
+});

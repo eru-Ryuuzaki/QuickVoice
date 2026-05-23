@@ -51,7 +51,6 @@ function createPublicStatus(
       provider: "openai",
       available: true,
       defaultModel: "gpt-5.5",
-      models: [{ id: "gpt-5.5", label: "gpt-5.5", default: true }],
     },
   };
 }
@@ -107,6 +106,41 @@ test("uses default MiniMax provider when provider field is missing", async () =>
 
   expect(response.status).toBe(200);
   expect(new TextDecoder().decode(await response.arrayBuffer())).toBe("minimax");
+});
+
+test("passes manual TTS model to the provider", async () => {
+  const synthesize = vi.fn(async () =>
+    new TextEncoder().encode("minimax").buffer,
+  );
+  const POST = createTtsRouteHandler({
+    providers: {
+      minimax: {
+        id: "minimax",
+        label: "MiniMax",
+        synthesize,
+      },
+    },
+    limiter: createAllowedLimiter(),
+    getClientIp: () => "127.0.0.1",
+    getPublicStatus: async () =>
+      createPublicStatus({
+        defaultModel: "speech-2.8-turbo",
+      }),
+  });
+
+  const formData = new FormData();
+  formData.set("text", "hello");
+  formData.set("voice", "zh-CN-XiaoxiaoNeural");
+  formData.set("model", "speech-custom");
+
+  const response = await POST(createRequest(formData));
+
+  expect(response.status).toBe(200);
+  expect(synthesize).toHaveBeenCalledWith(
+    expect.objectContaining({
+      model: "speech-custom",
+    }),
+  );
 });
 
 test("returns validation error for unknown TTS provider", async () => {

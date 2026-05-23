@@ -4,8 +4,8 @@ QuickVoice is a public speech workbench with:
 
 - `POST /api/tts` with selectable TTS providers: MiniMax and Microsoft unofficial
 - `POST /api/stt` with selectable STT providers: Volcengine and Vosk CN
-- `POST /api/summary` using OpenAI with a selectable allowlisted model
-- Studio-style single-page UI with TTS/STT mode switch, provider selectors, and summary controls
+- `POST /api/summary` using OpenAI with a manual model override
+- Studio-style single-page UI with TTS/STT mode switch, provider selectors, model inputs, and summary controls
 - Docker Compose deployment that runs QuickVoice beside a Vosk sidecar service
 
 ## Local Development
@@ -59,22 +59,27 @@ ENABLE_TTS_MICROSOFT_UNOFFICIAL=true
 VOLCENGINE_ACCESS_KEY_ID=
 VOLCENGINE_SECRET_ACCESS_KEY=
 VOLCENGINE_STT_APP_ID=
+VOLCENGINE_STT_MODEL=volc.bigasr.auc_turbo
+VOLCENGINE_STT_ENDPOINT=https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash
 
 VOSK_WS_URL=ws://vosk-cn:2700
 
 MINIMAX_API_KEY=
 MINIMAX_GROUP_ID=
+MINIMAX_TTS_MODEL=speech-2.8-turbo
+MINIMAX_TTS_ENDPOINT=https://api.minimax.io/v1/t2a_v2
 
 OPENAI_API_KEY=
 OPENAI_SUMMARY_MODEL=gpt-5.5
-OPENAI_SUMMARY_MODELS=gpt-5.5,gpt-5.4-mini,gpt-5.4-nano
+OPENAI_SUMMARY_ENDPOINT=https://api.openai.com/v1/responses
 ```
 
 Notes:
 
 - `STT_PROVIDER` controls the default STT provider.
 - `TTS_PROVIDER` controls the default TTS provider.
-- `OPENAI_SUMMARY_MODELS` controls which summary models appear in the UI.
+- `VOLCENGINE_STT_MODEL`, `MINIMAX_TTS_MODEL`, and `OPENAI_SUMMARY_MODEL` control server defaults. The browser UI also lets you type and save per-browser model overrides.
+- `VOLCENGINE_STT_ENDPOINT`, `MINIMAX_TTS_ENDPOINT`, and `OPENAI_SUMMARY_ENDPOINT` can override provider API URLs.
 - SiliconFlow is not part of the active provider stack.
 - `VOSK_WS_URL` should point at the internal Vosk websocket service. In production Compose it defaults to `ws://vosk-cn:2700`.
 

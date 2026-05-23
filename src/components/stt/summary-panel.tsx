@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { ModelInput } from "@/components/model-input";
 import type {
   PublicProviderStatus,
   SummaryResult,
@@ -83,24 +84,13 @@ export function SummaryPanel({
   return (
     <section className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
-        <label className="block">
-          <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-            Summary Model
-          </span>
-          <select
-            className="w-full rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] outline-none focus-visible:border-[var(--accent)]"
-            disabled={state.loading}
-            onChange={(event) => setModel(event.target.value)}
-            value={model}
-          >
-            {summaryStatus.models.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-                {option.default ? " (Default)" : ""}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ModelInput
+          defaultModel={summaryStatus.defaultModel}
+          disabled={state.loading}
+          label="Summary Model"
+          onModelChange={setModel}
+          storageKey="quickvoice.summary.model"
+        />
 
         <button
           className="self-end rounded border border-[var(--accent)] bg-[var(--accent)] px-4 py-2 text-xs tracking-[0.08em] text-[#121212] transition-transform duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50"

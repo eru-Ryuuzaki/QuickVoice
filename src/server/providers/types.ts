@@ -43,11 +43,13 @@ export type PublicTtsProviderStatus =
 
 export type PublicSttStatus = ProviderAvailability & {
   defaultProvider: SttProviderId;
+  defaultModel: string;
   providers: PublicSttProviderStatus[];
 };
 
 export type PublicTtsStatus = ProviderAvailability & {
   defaultProvider: TtsProviderId;
+  defaultModel: string;
   providers: PublicTtsProviderStatus[];
 };
 
@@ -60,7 +62,6 @@ export type PublicSummaryModelStatus = {
 export type PublicSummaryStatus = ProviderAvailability & {
   provider: "openai";
   defaultModel: string;
-  models: PublicSummaryModelStatus[];
 };
 
 export type PublicProviderStatus = {
@@ -72,6 +73,7 @@ export type PublicProviderStatus = {
 export type TtsSynthesizeInput = {
   text: string;
   voice: string;
+  model: string;
   rate: string;
   pitch: string;
   style: string;
@@ -86,6 +88,7 @@ export type TtsProvider = {
 
 export type SttTranscribeInput = {
   file: File;
+  model: string;
 };
 
 export type SttTranscribeResult = {

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
+import { ModelInput } from "@/components/model-input";
 import type { VoiceGroup } from "@/server/tts/voices";
 
 import type { TtsResultState } from "@/components/tts/audio-result";
@@ -48,6 +49,7 @@ export function TtsForm({
   const [voiceGroups, setVoiceGroups] = useState<VoiceGroup[]>(FALLBACK_GROUPS);
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>("loading");
   const [voiceId, setVoiceId] = useState("zh-CN-XiaoxiaoNeural");
+  const [model, setModel] = useState(ttsStatus.defaultModel);
   const [rate, setRate] = useState("1.0");
   const [pitch, setPitch] = useState("0");
   const [style, setStyle] = useState("general");
@@ -67,6 +69,10 @@ export function TtsForm({
 
   const [providerId, setProviderId] =
     useState<TtsProviderId>(resolvedProvider);
+
+  useEffect(() => {
+    setModel(ttsStatus.defaultModel);
+  }, [ttsStatus.defaultModel]);
 
   useEffect(() => {
     setProviderId(resolvedProvider);
@@ -154,6 +160,7 @@ export function TtsForm({
     }
 
     formData.set("voice", voiceId);
+    formData.set("model", model);
     formData.set("rate", rate);
     formData.set("pitch", pitch);
     formData.set("style", style);
@@ -294,6 +301,14 @@ export function TtsForm({
             ))}
           </select>
         </label>
+
+        <ModelInput
+          defaultModel={ttsStatus.defaultModel}
+          disabled={!ttsStatus.available || isSubmitting}
+          label="TTS Model"
+          onModelChange={setModel}
+          storageKey="quickvoice.tts.model"
+        />
 
         <label className="block">
           <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">

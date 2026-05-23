@@ -15,7 +15,7 @@ function createAllowedLimiter(): RateLimiter {
   };
 }
 
-function createRequest(file: File, provider?: string) {
+function createRequest(file: File, provider?: string, model?: string) {
   return {
     headers: new Headers(),
     async formData() {
@@ -23,6 +23,9 @@ function createRequest(file: File, provider?: string) {
       formData.set("file", file);
       if (provider) {
         formData.set("provider", provider);
+      }
+      if (model) {
+        formData.set("model", model);
       }
       return formData;
     },
@@ -58,7 +61,6 @@ function createPublicStatus(
       provider: "openai",
       available: true,
       defaultModel: "gpt-5.5",
-      models: [{ id: "gpt-5.5", label: "gpt-5.5", default: true }],
     },
   };
 }
@@ -155,6 +157,46 @@ test("uses configured Volcengine default when no provider is supplied", async ()
   expect(response.status).toBe(200);
   expect(payload.text).toBe("hello from volcengine");
   expect(payload.provider).toBe("volcengine");
+});
+
+test("passes manual STT model to the provider", async () => {
+  const transcribe = vi.fn(async () => ({
+    text: "hello from volcengine",
+  }));
+  const volcengineProvider: SttProvider = {
+    id: "volcengine",
+    label: "Volcengine",
+    transcribe,
+  };
+
+  const POST = createSttRouteHandler({
+    providers: {
+      volcengine: volcengineProvider,
+    },
+    limiter: createAllowedLimiter(),
+    getClientIp: () => "127.0.0.1",
+    getPublicStatus: async () =>
+      createPublicStatus({
+        defaultModel: "volc.bigasr.auc_turbo",
+      }),
+  });
+
+  const response = await POST(
+    createRequest(
+      new File([new Uint8Array([1, 2, 3])], "voice.mp3", {
+        type: "audio/mpeg",
+      }),
+      "volcengine",
+      "custom-stt-model",
+    ),
+  );
+
+  expect(response.status).toBe(200);
+  expect(transcribe).toHaveBeenCalledWith(
+    expect.objectContaining({
+      model: "custom-stt-model",
+    }),
+  );
 });
 
 test("returns unavailable when the requested provider is disabled", async () => {

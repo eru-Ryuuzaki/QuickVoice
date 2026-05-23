@@ -31,7 +31,7 @@ export function createMiniMaxTtsProvider(
   const groupId = options.groupId ?? config.minimaxGroupId;
   const model = options.model ?? config.minimaxTtsModel;
   const defaultVoiceId = options.defaultVoiceId ?? config.minimaxTtsVoiceId;
-  const endpoint = options.endpoint ?? DEFAULT_ENDPOINT;
+  const endpoint = options.endpoint ?? config.minimaxTtsEndpoint ?? DEFAULT_ENDPOINT;
   const fetchImpl = options.fetchImpl ?? fetch;
 
   return {
@@ -55,6 +55,7 @@ export function createMiniMaxTtsProvider(
         );
       }
 
+      const requestModel = input.model?.trim() || model;
       const response = await fetchImpl(`${endpoint}?GroupId=${groupId}`, {
         method: "POST",
         headers: {
@@ -62,7 +63,7 @@ export function createMiniMaxTtsProvider(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model,
+          model: requestModel,
           text: input.text,
           stream: false,
           voice_setting: {

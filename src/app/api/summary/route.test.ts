@@ -38,49 +38,47 @@ const provider: SummaryProvider = {
   },
 };
 
-test("summarizes transcript with selected allowed model", async () => {
+test("summarizes transcript with manually supplied model", async () => {
   const POST = createSummaryRouteHandler({
     provider,
     limiter: createAllowedLimiter(),
     getClientIp: () => "127.0.0.1",
     config: {
       openaiSummaryModel: "gpt-5.5",
-      openaiSummaryModels: ["gpt-5.5", "gpt-5.4-mini"],
     },
   });
 
   const response = await POST(
     createRequest({
       transcript: " hello transcript ",
-      model: "gpt-5.4-mini",
+      model: "gpt-custom",
     }),
   );
   const payload = await response.json();
 
   expect(response.status).toBe(200);
-  expect(payload.model).toBe("gpt-5.4-mini");
+  expect(payload.model).toBe("gpt-custom");
   expect(payload.cleanTranscript).toBe("hello transcript");
 });
 
-test("returns validation error for disallowed summary model", async () => {
+test("uses default model when summary model is blank", async () => {
   const POST = createSummaryRouteHandler({
     provider,
     limiter: createAllowedLimiter(),
     getClientIp: () => "127.0.0.1",
     config: {
       openaiSummaryModel: "gpt-5.5",
-      openaiSummaryModels: ["gpt-5.5"],
     },
   });
 
   const response = await POST(
     createRequest({
       transcript: "hello transcript",
-      model: "not-allowed",
+      model: "   ",
     }),
   );
   const payload = await response.json();
 
-  expect(response.status).toBe(400);
-  expect(payload.error.code).toBe("VALIDATION_ERROR");
+  expect(response.status).toBe(200);
+  expect(payload.model).toBe("gpt-5.5");
 });

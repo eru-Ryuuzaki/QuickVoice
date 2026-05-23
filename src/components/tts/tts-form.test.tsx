@@ -23,6 +23,7 @@ const voicesPayload = {
 const ttsStatus: PublicProviderStatus["tts"] = {
   available: true,
   defaultProvider: "minimax",
+  defaultModel: "speech-2.8-turbo",
   providers: [
     { id: "minimax", label: "MiniMax", available: true },
     {
@@ -87,4 +88,65 @@ test("submits TTS input and reports playable audio result", async () => {
 
   const [, requestOptions] = fetchMock.mock.calls[1] ?? [];
   expect((requestOptions?.body as FormData).get("provider")).toBe("minimax");
+  expect((requestOptions?.body as FormData).get("model")).toBe(
+    "speech-2.8-turbo",
+  );
+});
+
+test("persists manual TTS model and can clear the saved value", async () => {
+  localStorage.setItem("quickvoice.tts.model", "saved-tts-model");
+  const user = userEvent.setup();
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify(voicesPayload), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    )
+    .mockResolvedValueOnce(
+      new Response(new Blob([new Uint8Array([1])], { type: "audio/mpeg" }), {
+        status: 200,
+        headers: { "Content-Type": "audio/mpeg" },
+      }),
+    );
+
+  vi.stubGlobal("fetch", fetchMock);
+  Object.defineProperty(URL, "createObjectURL", {
+    configurable: true,
+    value: vi.fn(() => "blob:quickvoice-result"),
+  });
+  Object.defineProperty(URL, "revokeObjectURL", {
+    configurable: true,
+    value: vi.fn(),
+  });
+
+  render(
+    <TtsForm
+      onResultChange={() => {}}
+      seedText="hello quickvoice"
+      ttsStatus={ttsStatus}
+    />,
+  );
+
+  const modelInput = await screen.findByLabelText("TTS Model");
+  expect(modelInput).toHaveValue("saved-tts-model");
+
+  await user.clear(modelInput);
+  await user.type(modelInput, "speech-custom");
+  expect(localStorage.getItem("quickvoice.tts.model")).toBe("speech-custom");
+
+  await user.click(screen.getByRole("button", { name: "Generate Audio" }));
+
+  await waitFor(() => {
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  const [, requestOptions] = fetchMock.mock.calls[1] ?? [];
+  expect((requestOptions?.body as FormData).get("model")).toBe("speech-custom");
+
+  await user.click(screen.getByRole("button", { name: "Clear TTS Model" }));
+
+  expect(modelInput).toHaveValue("speech-2.8-turbo");
+  expect(localStorage.getItem("quickvoice.tts.model")).toBeNull();
 });

@@ -8,13 +8,9 @@ const summaryStatus: PublicProviderStatus["summary"] = {
   provider: "openai",
   available: true,
   defaultModel: "gpt-5.5",
-  models: [
-    { id: "gpt-5.5", label: "gpt-5.5", default: true },
-    { id: "gpt-5.4-mini", label: "gpt-5.4-mini", default: false },
-  ],
 };
 
-test("summarizes transcript with the selected model", async () => {
+test("summarizes transcript with a manual model", async () => {
   const user = userEvent.setup();
   const fetchMock = vi.fn(async () =>
     new Response(
@@ -25,7 +21,7 @@ test("summarizes transcript with the selected model", async () => {
         actionItems: [],
         keywords: [],
         cleanTranscript: "hello transcript",
-        model: "gpt-5.4-mini",
+        model: "gpt-custom",
       }),
       {
         status: 200,
@@ -43,7 +39,8 @@ test("summarizes transcript with the selected model", async () => {
     />,
   );
 
-  await user.selectOptions(screen.getByLabelText("Summary Model"), "gpt-5.4-mini");
+  await user.clear(screen.getByLabelText("Summary Model"));
+  await user.type(screen.getByLabelText("Summary Model"), "gpt-custom");
   await user.click(screen.getByRole("button", { name: "Summarize" }));
 
   await waitFor(() => {
@@ -56,8 +53,32 @@ test("summarizes transcript with the selected model", async () => {
       method: "POST",
       body: JSON.stringify({
         transcript: "hello transcript",
-        model: "gpt-5.4-mini",
+        model: "gpt-custom",
       }),
     }),
   );
+});
+
+test("persists manual summary model and can clear the saved value", async () => {
+  localStorage.setItem("quickvoice.summary.model", "saved-summary-model");
+  const user = userEvent.setup();
+
+  render(
+    <SummaryPanel
+      summaryStatus={summaryStatus}
+      transcript="hello transcript"
+    />,
+  );
+
+  const modelInput = screen.getByLabelText("Summary Model");
+  expect(modelInput).toHaveValue("saved-summary-model");
+
+  await user.clear(modelInput);
+  await user.type(modelInput, "gpt-custom");
+  expect(localStorage.getItem("quickvoice.summary.model")).toBe("gpt-custom");
+
+  await user.click(screen.getByRole("button", { name: "Clear Summary Model" }));
+
+  expect(modelInput).toHaveValue("gpt-5.5");
+  expect(localStorage.getItem("quickvoice.summary.model")).toBeNull();
 });

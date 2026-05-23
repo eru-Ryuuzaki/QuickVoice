@@ -16,29 +16,27 @@ const provider: SummaryProvider = {
   },
 };
 
-test("summarizes transcript with an allowed model", async () => {
+test("summarizes transcript with a manually supplied model", async () => {
   const result = await summarizeTranscript(
-    { transcript: " hello ", model: "gpt-5.4-mini" },
+    { transcript: " hello ", model: "gpt-custom" },
     {
       provider,
-      allowedModels: ["gpt-5.5", "gpt-5.4-mini"],
       defaultModel: "gpt-5.5",
     },
   );
 
-  expect(result.model).toBe("gpt-5.4-mini");
+  expect(result.model).toBe("gpt-custom");
   expect(result.cleanTranscript).toBe("hello");
 });
 
-test("rejects model outside allowlist", async () => {
-  await expect(
-    summarizeTranscript(
-      { transcript: "hello", model: "not-allowed" },
-      {
-        provider,
-        allowedModels: ["gpt-5.5"],
-        defaultModel: "gpt-5.5",
-      },
-    ),
-  ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+test("uses default model when the summary model is blank", async () => {
+  const result = await summarizeTranscript(
+    { transcript: "hello", model: "   " },
+    {
+      provider,
+      defaultModel: "gpt-5.5",
+    },
+  );
+
+  expect(result.model).toBe("gpt-5.5");
 });

@@ -6,6 +6,7 @@ import { splitTextForTts } from "@/server/tts/text-split";
 export type GenerateSpeechInput = {
   text: string;
   voice: string;
+  model?: string;
   rate?: string;
   pitch?: string;
   style?: string;
@@ -65,6 +66,7 @@ export async function generateSpeech(
     const chunkAudio = await deps.provider.synthesize({
       text: chunk,
       voice: input.voice,
+      model: input.model?.trim() ?? "",
       rate: normalized.rate,
       pitch: normalized.pitch,
       style: normalized.style,

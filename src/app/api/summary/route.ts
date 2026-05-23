@@ -14,7 +14,6 @@ export const runtime = "nodejs";
 
 type SummaryRouteConfig = {
   openaiSummaryModel: string;
-  openaiSummaryModels: string[];
 };
 
 type SummaryRouteDeps = {
@@ -83,7 +82,6 @@ function defaultConfig(): SummaryRouteConfig {
   const config = loadConfig();
   return {
     openaiSummaryModel: config.openaiSummaryModel,
-    openaiSummaryModels: config.openaiSummaryModels,
   };
 }
 
@@ -113,7 +111,6 @@ export function createSummaryRouteHandler(deps: SummaryRouteDeps = {}) {
         },
         {
           provider,
-          allowedModels: config.openaiSummaryModels,
           defaultModel: config.openaiSummaryModel,
         },
       );

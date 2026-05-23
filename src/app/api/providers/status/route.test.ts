@@ -36,6 +36,7 @@ test("returns provider status for public UI", async () => {
 
     expect(response.status).toBe(200);
     expect(payload.tts.defaultProvider).toBe("minimax");
+    expect(payload.tts.defaultModel).toBe("speech-2.8-turbo");
     expect(payload.tts.providers).toEqual([
       { id: "minimax", label: "MiniMax", available: true },
       {
@@ -46,6 +47,7 @@ test("returns provider status for public UI", async () => {
     ]);
     expect(payload.stt.available).toBe(true);
     expect(payload.stt.defaultProvider).toBe("volcengine");
+    expect(payload.stt.defaultModel).toBe("volc.bigasr.auc_turbo");
     expect(payload.stt.providers).toEqual([
       { id: "volcengine", label: "Volcengine", available: true },
       {

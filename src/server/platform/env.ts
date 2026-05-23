@@ -18,16 +18,18 @@ export type AppConfig = {
   volcengineAccessKeyId: string;
   volcengineSecretAccessKey: string;
   volcengineSttAppId: string;
+  volcengineSttModel: string;
   volcengineSttResourceId: string;
   volcengineSttEndpoint: string;
   voskWsUrl: string;
   minimaxApiKey: string;
   minimaxGroupId: string;
   minimaxTtsModel: string;
+  minimaxTtsEndpoint: string;
   minimaxTtsVoiceId: string;
   openaiApiKey: string;
   openaiSummaryModel: string;
-  openaiSummaryModels: string[];
+  openaiSummaryEndpoint: string;
 };
 
 type ConfigInput = {
@@ -43,16 +45,18 @@ type ConfigInput = {
   VOLCENGINE_ACCESS_KEY_ID?: string;
   VOLCENGINE_SECRET_ACCESS_KEY?: string;
   VOLCENGINE_STT_APP_ID?: string;
+  VOLCENGINE_STT_MODEL?: string;
   VOLCENGINE_STT_RESOURCE_ID?: string;
   VOLCENGINE_STT_ENDPOINT?: string;
   VOSK_WS_URL?: string;
   MINIMAX_API_KEY?: string;
   MINIMAX_GROUP_ID?: string;
   MINIMAX_TTS_MODEL?: string;
+  MINIMAX_TTS_ENDPOINT?: string;
   MINIMAX_TTS_VOICE_ID?: string;
   OPENAI_API_KEY?: string;
   OPENAI_SUMMARY_MODEL?: string;
-  OPENAI_SUMMARY_MODELS?: string;
+  OPENAI_SUMMARY_ENDPOINT?: string;
 };
 
 const DEFAULT_VOSK_WS_URL = "ws://vosk-cn:2700";
@@ -60,12 +64,9 @@ const DEFAULT_VOLCENGINE_STT_ENDPOINT =
   "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash";
 const DEFAULT_VOLCENGINE_STT_RESOURCE_ID = "volc.bigasr.auc_turbo";
 const DEFAULT_MINIMAX_TTS_MODEL = "speech-2.8-turbo";
+const DEFAULT_MINIMAX_TTS_ENDPOINT = "https://api.minimax.io/v1/t2a_v2";
 const DEFAULT_OPENAI_SUMMARY_MODEL = "gpt-5.5";
-const DEFAULT_OPENAI_SUMMARY_MODELS = [
-  "gpt-5.5",
-  "gpt-5.4-mini",
-  "gpt-5.4-nano",
-];
+const DEFAULT_OPENAI_SUMMARY_ENDPOINT = "https://api.openai.com/v1/responses";
 
 function parseBoolean(value: string | undefined, fallback: boolean) {
   if (value == null || value.trim() === "") {
@@ -92,19 +93,6 @@ function parseOptionalString(value: string | undefined, fallback = "") {
   return value.trim();
 }
 
-function parseCsv(value: string | undefined, fallback: string[]) {
-  if (value == null || value.trim() === "") {
-    return fallback;
-  }
-
-  const parsed = value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  return parsed.length > 0 ? parsed : fallback;
-}
-
 function parseSttProvider(value: string | undefined): SttProviderId {
   const normalized = value?.trim().toLowerCase();
   if (normalized && STT_PROVIDER_IDS.includes(normalized as SttProviderId)) {
@@ -125,14 +113,6 @@ function parseTtsProvider(value: string | undefined): TtsProviderId {
 
 export function loadConfig(input?: ConfigInput): AppConfig {
   const source = input ?? (process.env as ConfigInput);
-  const openaiSummaryModels = parseCsv(
-    source.OPENAI_SUMMARY_MODELS,
-    DEFAULT_OPENAI_SUMMARY_MODELS,
-  );
-  const requestedSummaryModel = parseString(
-    source.OPENAI_SUMMARY_MODEL,
-    DEFAULT_OPENAI_SUMMARY_MODEL,
-  );
 
   return {
     ttsProvider: parseTtsProvider(source.TTS_PROVIDER),
@@ -152,8 +132,12 @@ export function loadConfig(input?: ConfigInput): AppConfig {
       source.VOLCENGINE_SECRET_ACCESS_KEY,
     ),
     volcengineSttAppId: parseOptionalString(source.VOLCENGINE_STT_APP_ID),
+    volcengineSttModel: parseString(
+      source.VOLCENGINE_STT_MODEL ?? source.VOLCENGINE_STT_RESOURCE_ID,
+      DEFAULT_VOLCENGINE_STT_RESOURCE_ID,
+    ),
     volcengineSttResourceId: parseString(
-      source.VOLCENGINE_STT_RESOURCE_ID,
+      source.VOLCENGINE_STT_RESOURCE_ID ?? source.VOLCENGINE_STT_MODEL,
       DEFAULT_VOLCENGINE_STT_RESOURCE_ID,
     ),
     volcengineSttEndpoint: parseString(
@@ -167,11 +151,19 @@ export function loadConfig(input?: ConfigInput): AppConfig {
       source.MINIMAX_TTS_MODEL,
       DEFAULT_MINIMAX_TTS_MODEL,
     ),
+    minimaxTtsEndpoint: parseString(
+      source.MINIMAX_TTS_ENDPOINT,
+      DEFAULT_MINIMAX_TTS_ENDPOINT,
+    ),
     minimaxTtsVoiceId: parseOptionalString(source.MINIMAX_TTS_VOICE_ID),
     openaiApiKey: parseOptionalString(source.OPENAI_API_KEY),
-    openaiSummaryModel: openaiSummaryModels.includes(requestedSummaryModel)
-      ? requestedSummaryModel
-      : (openaiSummaryModels[0] ?? DEFAULT_OPENAI_SUMMARY_MODEL),
-    openaiSummaryModels,
+    openaiSummaryModel: parseString(
+      source.OPENAI_SUMMARY_MODEL,
+      DEFAULT_OPENAI_SUMMARY_MODEL,
+    ),
+    openaiSummaryEndpoint: parseString(
+      source.OPENAI_SUMMARY_ENDPOINT,
+      DEFAULT_OPENAI_SUMMARY_ENDPOINT,
+    ),
   };
 }

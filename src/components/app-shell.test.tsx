@@ -19,6 +19,7 @@ test("renders top rail, activity rail, and two-pane work area", async () => {
         tts: {
           available: true,
           defaultProvider: "minimax",
+          defaultModel: "speech-2.8-turbo",
           providers: [
             { id: "minimax", label: "MiniMax", available: true },
             {
@@ -31,6 +32,7 @@ test("renders top rail, activity rail, and two-pane work area", async () => {
         stt: {
           available: true,
           defaultProvider: "volcengine",
+          defaultModel: "volc.bigasr.auc_turbo",
           providers: [
             { id: "volcengine", label: "Volcengine", available: true },
             {
@@ -45,10 +47,6 @@ test("renders top rail, activity rail, and two-pane work area", async () => {
           provider: "openai",
           available: true,
           defaultModel: "gpt-5.5",
-          models: [
-            { id: "gpt-5.5", label: "gpt-5.5", default: true },
-            { id: "gpt-5.4-mini", label: "gpt-5.4-mini", default: false },
-          ],
         },
       }}
     />,

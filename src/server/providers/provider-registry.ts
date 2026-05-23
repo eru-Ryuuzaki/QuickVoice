@@ -24,12 +24,14 @@ type RegistryConfigInput = Partial<{
   VOLCENGINE_ACCESS_KEY_ID: string;
   VOLCENGINE_SECRET_ACCESS_KEY: string;
   VOLCENGINE_STT_APP_ID: string;
+  VOLCENGINE_STT_MODEL: string;
+  VOLCENGINE_STT_RESOURCE_ID: string;
   VOSK_WS_URL: string;
   MINIMAX_API_KEY: string;
   MINIMAX_GROUP_ID: string;
+  MINIMAX_TTS_MODEL: string;
   OPENAI_API_KEY: string;
   OPENAI_SUMMARY_MODEL: string;
-  OPENAI_SUMMARY_MODELS: string;
 }>;
 
 function disabled<TId extends string>(
@@ -131,12 +133,14 @@ export function createProviderRegistry(overrides?: RegistryConfigInput) {
         available: ttsAvailable,
         reason: aggregateReason(ttsProviders),
         defaultProvider: config.ttsProvider,
+        defaultModel: config.minimaxTtsModel,
         providers: ttsProviders,
       },
       stt: {
         available: sttAvailable,
         reason: aggregateReason(sttProviders),
         defaultProvider: config.sttProvider,
+        defaultModel: config.volcengineSttModel,
         providers: sttProviders,
       },
       summary: {
@@ -144,11 +148,6 @@ export function createProviderRegistry(overrides?: RegistryConfigInput) {
         available: summaryAvailable,
         reason: summaryAvailable ? undefined : "unconfigured",
         defaultModel: config.openaiSummaryModel,
-        models: config.openaiSummaryModels.map((model) => ({
-          id: model,
-          label: model,
-          default: model === config.openaiSummaryModel,
-        })),
       },
     };
   }

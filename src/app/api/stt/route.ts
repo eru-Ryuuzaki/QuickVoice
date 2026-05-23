@@ -181,6 +181,9 @@ export function createSttRouteHandler(deps: SttRouteDeps = {}) {
       const result = await transcribeAudio(
         {
           file,
+          model:
+            readStringField(formData, "model") ||
+            publicStatus.stt.defaultModel,
         },
         {
           provider,

@@ -10,12 +10,9 @@ test("defaults to the MVP provider stack", () => {
   expect(config.enableSttVosk).toBe(true);
   expect(config.enableTtsMinimax).toBe(true);
   expect(config.enableTtsMicrosoftUnofficial).toBe(true);
+  expect(config.volcengineSttModel).toBe("volc.bigasr.auc_turbo");
+  expect(config.minimaxTtsModel).toBe("speech-2.8-turbo");
   expect(config.openaiSummaryModel).toBe("gpt-5.5");
-  expect(config.openaiSummaryModels).toEqual([
-    "gpt-5.5",
-    "gpt-5.4-mini",
-    "gpt-5.4-nano",
-  ]);
 });
 
 test("keeps Vosk configurable as an STT provider", () => {
@@ -36,16 +33,20 @@ test("falls back to Volcengine when removed SiliconFlow is configured", () => {
   expect(config.sttProvider).toBe("volcengine");
 });
 
-test("parses summary model allowlist", () => {
+test("parses manual model defaults and endpoint overrides", () => {
   const config = loadConfig({
-    OPENAI_SUMMARY_MODEL: " gpt-5.4-mini ",
-    OPENAI_SUMMARY_MODELS: " gpt-5.5, gpt-5.4-mini ,, gpt-5.4-nano ",
+    VOLCENGINE_STT_MODEL: " custom-stt-model ",
+    VOLCENGINE_STT_ENDPOINT: " https://stt.example.test ",
+    MINIMAX_TTS_MODEL: " speech-custom ",
+    MINIMAX_TTS_ENDPOINT: " https://tts.example.test ",
+    OPENAI_SUMMARY_MODEL: " gpt-custom ",
+    OPENAI_SUMMARY_ENDPOINT: " https://summary.example.test ",
   });
 
-  expect(config.openaiSummaryModel).toBe("gpt-5.4-mini");
-  expect(config.openaiSummaryModels).toEqual([
-    "gpt-5.5",
-    "gpt-5.4-mini",
-    "gpt-5.4-nano",
-  ]);
+  expect(config.volcengineSttModel).toBe("custom-stt-model");
+  expect(config.volcengineSttEndpoint).toBe("https://stt.example.test");
+  expect(config.minimaxTtsModel).toBe("speech-custom");
+  expect(config.minimaxTtsEndpoint).toBe("https://tts.example.test");
+  expect(config.openaiSummaryModel).toBe("gpt-custom");
+  expect(config.openaiSummaryEndpoint).toBe("https://summary.example.test");
 });

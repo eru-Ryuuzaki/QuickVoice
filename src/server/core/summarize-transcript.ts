@@ -8,7 +8,6 @@ export type SummarizeTranscriptInput = {
 
 type SummarizeTranscriptDeps = {
   provider: SummaryProvider;
-  allowedModels: string[];
   defaultModel: string;
   maxTranscriptLength?: number;
 };
@@ -36,13 +35,5 @@ export async function summarizeTranscript(
   }
 
   const model = input.model.trim() || deps.defaultModel;
-  if (!deps.allowedModels.includes(model)) {
-    throw new AppError(
-      "VALIDATION_ERROR",
-      `VALIDATION_ERROR: summary model "${model}" is not allowed`,
-      { status: 400 },
-    );
-  }
-
   return deps.provider.summarize({ transcript, model });
 }

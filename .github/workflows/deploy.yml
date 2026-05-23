@@ -9,14 +9,23 @@ env:
   IMAGE_NAME_APP: ${{ vars.IMAGE_NAME_APP || 'crpi-c8pkxwwubdfz6rtn.cn-shanghai.personal.cr.aliyuncs.com/ryuuzaki/quickvoice' }}
   DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/root/quickvoice' }}
   APP_URL: ${{ vars.APP_URL || 'https://quickvoice.ryuuzaki.top' }}
-  TTS_PROVIDER: ${{ vars.TTS_PROVIDER || 'microsoft_unofficial' }}
-  STT_PROVIDER: ${{ vars.STT_PROVIDER || 'siliconflow' }}
+  TTS_PROVIDER: ${{ vars.TTS_PROVIDER || 'minimax' }}
+  STT_PROVIDER: ${{ vars.STT_PROVIDER || 'volcengine' }}
+  SUMMARY_PROVIDER: ${{ vars.SUMMARY_PROVIDER || 'openai' }}
   ENABLE_STT: ${{ vars.ENABLE_STT || 'true' }}
   ENABLE_PUBLIC_STT: ${{ vars.ENABLE_PUBLIC_STT || 'true' }}
-  ENABLE_STT_SILICONFLOW: ${{ vars.ENABLE_STT_SILICONFLOW || 'true' }}
+  ENABLE_STT_VOLCENGINE: ${{ vars.ENABLE_STT_VOLCENGINE || 'true' }}
   ENABLE_STT_VOSK: ${{ vars.ENABLE_STT_VOSK || 'true' }}
+  ENABLE_TTS_MINIMAX: ${{ vars.ENABLE_TTS_MINIMAX || 'true' }}
+  ENABLE_TTS_MICROSOFT_UNOFFICIAL: ${{ vars.ENABLE_TTS_MICROSOFT_UNOFFICIAL || 'true' }}
+  VOLCENGINE_STT_MODEL: ${{ vars.VOLCENGINE_STT_MODEL || 'volc.bigasr.auc_turbo' }}
+  VOLCENGINE_STT_ENDPOINT: ${{ vars.VOLCENGINE_STT_ENDPOINT || 'https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash' }}
   VOSK_WS_URL: ${{ vars.VOSK_WS_URL || 'ws://vosk-cn:2700' }}
-  SILICONFLOW_STT_MODEL: ${{ vars.SILICONFLOW_STT_MODEL || 'FunAudioLLM/SenseVoiceSmall' }}
+  MINIMAX_TTS_MODEL: ${{ vars.MINIMAX_TTS_MODEL || 'speech-2.8-turbo' }}
+  MINIMAX_TTS_ENDPOINT: ${{ vars.MINIMAX_TTS_ENDPOINT || 'https://api.minimax.io/v1/t2a_v2' }}
+  MINIMAX_TTS_VOICE_ID: ${{ vars.MINIMAX_TTS_VOICE_ID || '' }}
+  OPENAI_SUMMARY_MODEL: ${{ vars.OPENAI_SUMMARY_MODEL || 'gpt-5.5' }}
+  OPENAI_SUMMARY_ENDPOINT: ${{ vars.OPENAI_SUMMARY_ENDPOINT || 'https://api.openai.com/v1/responses' }}
 
 jobs:
   build-and-deploy:
@@ -49,13 +58,27 @@ jobs:
           echo "APP_URL=${{ env.APP_URL }}" >> .env
           echo "TTS_PROVIDER=${{ env.TTS_PROVIDER }}" >> .env
           echo "STT_PROVIDER=${{ env.STT_PROVIDER }}" >> .env
+          echo "SUMMARY_PROVIDER=${{ env.SUMMARY_PROVIDER }}" >> .env
           echo "ENABLE_STT=${{ env.ENABLE_STT }}" >> .env
           echo "ENABLE_PUBLIC_STT=${{ env.ENABLE_PUBLIC_STT }}" >> .env
-          echo "ENABLE_STT_SILICONFLOW=${{ env.ENABLE_STT_SILICONFLOW }}" >> .env
+          echo "ENABLE_STT_VOLCENGINE=${{ env.ENABLE_STT_VOLCENGINE }}" >> .env
           echo "ENABLE_STT_VOSK=${{ env.ENABLE_STT_VOSK }}" >> .env
+          echo "ENABLE_TTS_MINIMAX=${{ env.ENABLE_TTS_MINIMAX }}" >> .env
+          echo "ENABLE_TTS_MICROSOFT_UNOFFICIAL=${{ env.ENABLE_TTS_MICROSOFT_UNOFFICIAL }}" >> .env
+          echo "VOLCENGINE_ACCESS_KEY_ID=${{ secrets.VOLCENGINE_ACCESS_KEY_ID }}" >> .env
+          echo "VOLCENGINE_SECRET_ACCESS_KEY=${{ secrets.VOLCENGINE_SECRET_ACCESS_KEY }}" >> .env
+          echo "VOLCENGINE_STT_APP_ID=${{ secrets.VOLCENGINE_STT_APP_ID }}" >> .env
+          echo "VOLCENGINE_STT_MODEL=${{ env.VOLCENGINE_STT_MODEL }}" >> .env
+          echo "VOLCENGINE_STT_ENDPOINT=${{ env.VOLCENGINE_STT_ENDPOINT }}" >> .env
           echo "VOSK_WS_URL=${{ env.VOSK_WS_URL }}" >> .env
-          echo "SILICONFLOW_API_KEY=${{ secrets.SILICONFLOW_API_KEY }}" >> .env
-          echo "SILICONFLOW_STT_MODEL=${{ env.SILICONFLOW_STT_MODEL }}" >> .env
+          echo "MINIMAX_API_KEY=${{ secrets.MINIMAX_API_KEY }}" >> .env
+          echo "MINIMAX_GROUP_ID=${{ secrets.MINIMAX_GROUP_ID }}" >> .env
+          echo "MINIMAX_TTS_MODEL=${{ env.MINIMAX_TTS_MODEL }}" >> .env
+          echo "MINIMAX_TTS_ENDPOINT=${{ env.MINIMAX_TTS_ENDPOINT }}" >> .env
+          echo "MINIMAX_TTS_VOICE_ID=${{ env.MINIMAX_TTS_VOICE_ID }}" >> .env
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+          echo "OPENAI_SUMMARY_MODEL=${{ env.OPENAI_SUMMARY_MODEL }}" >> .env
+          echo "OPENAI_SUMMARY_ENDPOINT=${{ env.OPENAI_SUMMARY_ENDPOINT }}" >> .env
 
       - name: Copy deployment assets to server
         uses: appleboy/scp-action@master

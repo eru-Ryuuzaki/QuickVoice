@@ -19,6 +19,7 @@ test("exposes MVP provider options and defaults", async () => {
     { id: "vosk", label: "Vosk CN", available: true },
   ]);
   expect(status.tts.defaultProvider).toBe("minimax");
+  expect(status.tts.defaultModel).toBe("speech-2.8-turbo");
   expect(status.tts.providers).toEqual([
     { id: "minimax", label: "MiniMax", available: true },
     {
@@ -27,8 +28,10 @@ test("exposes MVP provider options and defaults", async () => {
       available: true,
     },
   ]);
+  expect(status.stt.defaultModel).toBe("volc.bigasr.auc_turbo");
   expect(status.summary.available).toBe(true);
   expect(status.summary.defaultModel).toBe("gpt-5.5");
+  expect(status.summary).not.toHaveProperty("models");
 });
 
 test("does not expose SiliconFlow", async () => {

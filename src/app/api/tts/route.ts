@@ -193,6 +193,9 @@ export function createTtsRouteHandler(deps: TtsRouteDeps = {}) {
 
       const text = await resolveText(formData);
       const voice = readStringField(formData, "voice", "zh-CN-XiaoxiaoNeural");
+      const model =
+        readStringField(formData, "model").trim() ||
+        publicStatus.tts.defaultModel;
       const rate = readStringField(formData, "rate", "1.0");
       const pitch = readStringField(formData, "pitch", "0");
       const style = readStringField(formData, "style", "general");
@@ -200,6 +203,7 @@ export function createTtsRouteHandler(deps: TtsRouteDeps = {}) {
       const input: GenerateSpeechInput = {
         text,
         voice,
+        model,
         rate,
         pitch,
         style,

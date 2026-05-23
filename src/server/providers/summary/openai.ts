@@ -2,8 +2,6 @@ import { loadConfig } from "@/server/platform/env";
 import { AppError } from "@/server/platform/errors";
 import type { SummaryProvider, SummaryResult } from "@/server/providers/types";
 
-const OPENAI_RESPONSES_ENDPOINT = "https://api.openai.com/v1/responses";
-
 type OpenAiSummaryOptions = {
   apiKey?: string;
   endpoint?: string;
@@ -38,7 +36,7 @@ export function createOpenAiSummaryProvider(
 ): SummaryProvider {
   const config = loadConfig();
   const apiKey = options.apiKey ?? config.openaiApiKey;
-  const endpoint = options.endpoint ?? OPENAI_RESPONSES_ENDPOINT;
+  const endpoint = options.endpoint ?? config.openaiSummaryEndpoint;
   const fetchImpl = options.fetchImpl ?? fetch;
 
   return {
