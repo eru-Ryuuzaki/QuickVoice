@@ -15,26 +15,23 @@ import {
 type RegistryConfigInput = Partial<{
   TTS_PROVIDER: string;
   STT_PROVIDER: string;
-  ENABLE_STT_VOLCENGINE: string;
-  ENABLE_STT_VOSK: string;
-  ENABLE_TTS_MINIMAX: string;
-  ENABLE_TTS_MICROSOFT_UNOFFICIAL: string;
-  VOLCENGINE_ACCESS_KEY_ID: string;
-  VOLCENGINE_SECRET_ACCESS_KEY: string;
-  VOLCENGINE_STT_APP_ID: string;
+  VOLCENGINE_STT_ENABLED: string;
+  VOLCENGINE_STT_API_KEY: string;
   VOLCENGINE_STT_MODEL: string;
   VOLCENGINE_STT_MODEL_OPTIONS: string;
-  VOLCENGINE_STT_RESOURCE_ID: string;
-  VOSK_WS_URL: string;
-  MINIMAX_API_KEY: string;
+  VOSK_STT_ENABLED: string;
+  VOSK_STT_WS_URL: string;
+  MINIMAX_TTS_ENABLED: string;
+  MINIMAX_TTS_API_KEY: string;
   MINIMAX_TTS_MODEL: string;
   MINIMAX_TTS_MODEL_OPTIONS: string;
   MINIMAX_TTS_ENDPOINT: string;
   MINIMAX_TTS_VOICE_ID: string;
   MINIMAX_TTS_VOICE_OPTIONS: string;
+  MICROSOFT_TTS_ENABLED: string;
   MICROSOFT_TTS_VOICE_ID: string;
   MICROSOFT_TTS_VOICE_OPTIONS: string;
-  OPENAI_API_KEY: string;
+  OPENAI_SUMMARY_API_KEY: string;
   OPENAI_SUMMARY_MODEL: string;
   OPENAI_SUMMARY_MODEL_OPTIONS: string;
 }>;
@@ -77,11 +74,7 @@ export function createProviderRegistry(overrides?: RegistryConfigInput) {
         return disabled(id, label);
       }
 
-      if (
-        !config.volcengineAccessKeyId ||
-        !config.volcengineSecretAccessKey ||
-        !config.volcengineSttAppId
-      ) {
+      if (!config.volcengineSttApiKey) {
         return unconfigured(id, label);
       }
     }

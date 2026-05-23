@@ -23,6 +23,6 @@ docker run --rm -p 2700:2700 alphacep/kaldi-cn:latest
 Then point QuickVoice at it with:
 
 ```env
-ENABLE_STT_VOSK=true
-VOSK_WS_URL=ws://127.0.0.1:2700
+VOSK_STT_ENABLED=true
+VOSK_STT_WS_URL=ws://127.0.0.1:2700
 ```

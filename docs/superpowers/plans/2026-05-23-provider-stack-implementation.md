@@ -81,6 +81,7 @@ Delete:
 ## Task 1: MVP Provider Types And Config
 
 **Files:**
+
 - Modify: `src/server/providers/types.ts`
 - Modify: `src/server/platform/env.ts`
 - Modify: `src/server/platform/env.test.ts`
@@ -113,7 +114,7 @@ test("defaults to the MVP provider stack", () => {
 test("keeps Vosk configurable as an STT provider", () => {
   const config = loadConfig({
     STT_PROVIDER: "vosk",
-    VOSK_WS_URL: " ws://localhost:2700 ",
+    VOSK_STT_WS_URL: " ws://localhost:2700 ",
   });
 
   expect(config.sttProvider).toBe("vosk");
@@ -302,10 +303,8 @@ export type AppConfig = {
   enableSttVosk: boolean;
   enableTtsMinimax: boolean;
   enableTtsMicrosoftUnofficial: boolean;
-  volcengineAccessKeyId: string;
-  volcengineSecretAccessKey: string;
-  volcengineSttAppId: string;
-  volcengineSttResourceId: string;
+  volcengineSttApiKey: string;
+  volcengineSttModel: string;
   volcengineSttEndpoint: string;
   voskWsUrl: string;
   minimaxApiKey: string;
@@ -323,29 +322,27 @@ type ConfigInput = {
   SUMMARY_PROVIDER?: string;
   ENABLE_STT?: string;
   ENABLE_PUBLIC_STT?: string;
-  ENABLE_STT_VOLCENGINE?: string;
-  ENABLE_STT_VOSK?: string;
-  ENABLE_TTS_MINIMAX?: string;
-  ENABLE_TTS_MICROSOFT_UNOFFICIAL?: string;
-  VOLCENGINE_ACCESS_KEY_ID?: string;
-  VOLCENGINE_SECRET_ACCESS_KEY?: string;
-  VOLCENGINE_STT_APP_ID?: string;
-  VOLCENGINE_STT_RESOURCE_ID?: string;
+  VOLCENGINE_STT_ENABLED?: string;
+  VOSK_STT_ENABLED?: string;
+  MINIMAX_TTS_ENABLED?: string;
+  MICROSOFT_TTS_ENABLED?: string;
+  VOLCENGINE_STT_API_KEY?: string;
+  VOLCENGINE_STT_MODEL?: string;
   VOLCENGINE_STT_ENDPOINT?: string;
-  VOSK_WS_URL?: string;
-  MINIMAX_API_KEY?: string;
+  VOSK_STT_WS_URL?: string;
+  MINIMAX_TTS_API_KEY?: string;
   MINIMAX_GROUP_ID?: string;
   MINIMAX_TTS_MODEL?: string;
   MINIMAX_TTS_VOICE_ID?: string;
-  OPENAI_API_KEY?: string;
+  OPENAI_SUMMARY_API_KEY?: string;
   OPENAI_SUMMARY_MODEL?: string;
   OPENAI_SUMMARY_MODELS?: string;
 };
 
-const DEFAULT_VOSK_WS_URL = "ws://vosk-cn:2700";
+const DEFAULT_VOSK_STT_WS_URL = "ws://vosk-cn:2700";
 const DEFAULT_VOLCENGINE_STT_ENDPOINT =
   "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash";
-const DEFAULT_VOLCENGINE_STT_RESOURCE_ID = "volc.bigasr.auc_turbo";
+const DEFAULT_VOLCENGINE_STT_MODEL = "volc.bigasr.auc_turbo";
 const DEFAULT_MINIMAX_TTS_MODEL = "speech-2.8-turbo";
 const DEFAULT_OPENAI_SUMMARY_MODEL = "gpt-5.5";
 const DEFAULT_OPENAI_SUMMARY_MODELS = [
@@ -427,38 +424,37 @@ export function loadConfig(input?: ConfigInput): AppConfig {
     summaryProvider: "openai",
     enableStt: parseBoolean(source.ENABLE_STT, true),
     enablePublicStt: parseBoolean(source.ENABLE_PUBLIC_STT, true),
-    enableSttVolcengine: parseBoolean(source.ENABLE_STT_VOLCENGINE, true),
-    enableSttVosk: parseBoolean(source.ENABLE_STT_VOSK, true),
-    enableTtsMinimax: parseBoolean(source.ENABLE_TTS_MINIMAX, true),
+    enableSttVolcengine: parseBoolean(source.VOLCENGINE_STT_ENABLED, true),
+    enableSttVosk: parseBoolean(source.VOSK_STT_ENABLED, true),
+    enableTtsMinimax: parseBoolean(source.MINIMAX_TTS_ENABLED, true),
     enableTtsMicrosoftUnofficial: parseBoolean(
-      source.ENABLE_TTS_MICROSOFT_UNOFFICIAL,
+      source.MICROSOFT_TTS_ENABLED,
       true,
     ),
-    volcengineAccessKeyId: parseOptionalString(source.VOLCENGINE_ACCESS_KEY_ID),
-    volcengineSecretAccessKey: parseOptionalString(
-      source.VOLCENGINE_SECRET_ACCESS_KEY,
-    ),
-    volcengineSttAppId: parseOptionalString(source.VOLCENGINE_STT_APP_ID),
-    volcengineSttResourceId: parseString(
-      source.VOLCENGINE_STT_RESOURCE_ID,
-      DEFAULT_VOLCENGINE_STT_RESOURCE_ID,
+    volcengineSttApiKey: parseOptionalString(source.VOLCENGINE_STT_API_KEY),
+    volcengineSttModel: parseString(
+      source.VOLCENGINE_STT_MODEL,
+      DEFAULT_VOLCENGINE_STT_MODEL,
     ),
     volcengineSttEndpoint: parseString(
       source.VOLCENGINE_STT_ENDPOINT,
       DEFAULT_VOLCENGINE_STT_ENDPOINT,
     ),
-    voskWsUrl: parseOptionalString(source.VOSK_WS_URL, DEFAULT_VOSK_WS_URL),
-    minimaxApiKey: parseOptionalString(source.MINIMAX_API_KEY),
+    voskWsUrl: parseOptionalString(
+      source.VOSK_STT_WS_URL,
+      DEFAULT_VOSK_STT_WS_URL,
+    ),
+    minimaxApiKey: parseOptionalString(source.MINIMAX_TTS_API_KEY),
     minimaxGroupId: parseOptionalString(source.MINIMAX_GROUP_ID),
     minimaxTtsModel: parseString(
       source.MINIMAX_TTS_MODEL,
       DEFAULT_MINIMAX_TTS_MODEL,
     ),
     minimaxTtsVoiceId: parseOptionalString(source.MINIMAX_TTS_VOICE_ID),
-    openaiApiKey: parseOptionalString(source.OPENAI_API_KEY),
+    openaiApiKey: parseOptionalString(source.OPENAI_SUMMARY_API_KEY),
     openaiSummaryModel: openaiSummaryModels.includes(requestedSummaryModel)
       ? requestedSummaryModel
-      : openaiSummaryModels[0] ?? DEFAULT_OPENAI_SUMMARY_MODEL,
+      : (openaiSummaryModels[0] ?? DEFAULT_OPENAI_SUMMARY_MODEL),
     openaiSummaryModels,
   };
 }
@@ -481,6 +477,7 @@ Expected: tests PASS and commit succeeds.
 ## Task 2: MVP Provider Registry
 
 **Files:**
+
 - Modify: `src/server/providers/provider-registry.ts`
 - Modify: `src/server/providers/provider-registry.test.ts`
 - Modify: `src/app/api/providers/status/route.test.ts`
@@ -496,13 +493,11 @@ import { createProviderRegistry } from "@/server/providers/provider-registry";
 
 test("exposes MVP provider options and defaults", async () => {
   const registry = createProviderRegistry({
-    VOLCENGINE_ACCESS_KEY_ID: "ak",
-    VOLCENGINE_SECRET_ACCESS_KEY: "sk",
-    VOLCENGINE_STT_APP_ID: "app",
-    VOSK_WS_URL: "ws://vosk-cn:2700",
-    MINIMAX_API_KEY: "minimax",
+    VOLCENGINE_STT_API_KEY: "api-key",
+    VOSK_STT_WS_URL: "ws://vosk-cn:2700",
+    MINIMAX_TTS_API_KEY: "minimax",
     MINIMAX_GROUP_ID: "group",
-    OPENAI_API_KEY: "openai",
+    OPENAI_SUMMARY_API_KEY: "openai",
   });
 
   const status = await registry.getPublicStatus();
@@ -541,8 +536,8 @@ test("does not expose SiliconFlow", async () => {
 
 test("marks missing paid-provider credentials as unconfigured", async () => {
   const registry = createProviderRegistry({
-    VOSK_WS_URL: "   ",
-    OPENAI_API_KEY: "",
+    VOSK_STT_WS_URL: "   ",
+    OPENAI_SUMMARY_API_KEY: "",
   });
 
   const status = await registry.getPublicStatus();
@@ -613,17 +608,15 @@ type RegistryConfigInput = Partial<{
   STT_PROVIDER: string;
   ENABLE_STT: string;
   ENABLE_PUBLIC_STT: string;
-  ENABLE_STT_VOLCENGINE: string;
-  ENABLE_STT_VOSK: string;
-  ENABLE_TTS_MINIMAX: string;
-  ENABLE_TTS_MICROSOFT_UNOFFICIAL: string;
-  VOLCENGINE_ACCESS_KEY_ID: string;
-  VOLCENGINE_SECRET_ACCESS_KEY: string;
-  VOLCENGINE_STT_APP_ID: string;
-  VOSK_WS_URL: string;
-  MINIMAX_API_KEY: string;
+  VOLCENGINE_STT_ENABLED: string;
+  VOSK_STT_ENABLED: string;
+  MINIMAX_TTS_ENABLED: string;
+  MICROSOFT_TTS_ENABLED: string;
+  VOLCENGINE_STT_API_KEY: string;
+  VOSK_STT_WS_URL: string;
+  MINIMAX_TTS_API_KEY: string;
   MINIMAX_GROUP_ID: string;
-  OPENAI_API_KEY: string;
+  OPENAI_SUMMARY_API_KEY: string;
   OPENAI_SUMMARY_MODEL: string;
   OPENAI_SUMMARY_MODELS: string;
 }>;
@@ -656,11 +649,7 @@ export function createProviderRegistry(overrides?: RegistryConfigInput) {
         return disabled(id, label);
       }
 
-      if (
-        !config.volcengineAccessKeyId ||
-        !config.volcengineSecretAccessKey ||
-        !config.volcengineSttAppId
-      ) {
+      if (!config.volcengineSttApiKey) {
         return unconfigured(id, label);
       }
     }
@@ -788,6 +777,7 @@ Expected: tests PASS and commit succeeds.
 ## Task 3: MVP STT Route
 
 **Files:**
+
 - Create: `src/server/providers/stt/volcengine.ts`
 - Create: `src/server/providers/stt/volcengine.test.ts`
 - Modify: `src/app/api/stt/route.ts`
@@ -802,11 +792,12 @@ Create `src/server/providers/stt/volcengine.test.ts`:
 import { createVolcengineSttProvider } from "@/server/providers/stt/volcengine";
 
 test("posts audio to Volcengine and returns transcript text", async () => {
-  const fetchImpl = vi.fn(async () =>
-    new Response(JSON.stringify({ result: { text: "hello volcengine" } }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
+  const fetchImpl = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ result: { text: "hello volcengine" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
   ) as typeof fetch;
 
   const provider = createVolcengineSttProvider({
@@ -839,7 +830,9 @@ test("posts audio to Volcengine and returns transcript text", async () => {
 });
 
 test("maps Volcengine failures", async () => {
-  const fetchImpl = vi.fn(async () => new Response("bad", { status: 503 })) as typeof fetch;
+  const fetchImpl = vi.fn(
+    async () => new Response("bad", { status: 503 }),
+  ) as typeof fetch;
   const provider = createVolcengineSttProvider({
     accessKeyId: "ak",
     secretAccessKey: "sk",
@@ -887,10 +880,8 @@ type VolcenginePayload = {
 function getDefaults() {
   const config = loadConfig();
   return {
-    accessKeyId: config.volcengineAccessKeyId,
-    secretAccessKey: config.volcengineSecretAccessKey,
-    appId: config.volcengineSttAppId,
-    resourceId: config.volcengineSttResourceId,
+    apiKey: config.volcengineSttApiKey,
+    resourceId: config.volcengineSttModel,
     endpoint: config.volcengineSttEndpoint,
   };
 }
@@ -1015,6 +1006,7 @@ Expected: tests PASS and commit succeeds.
 ## Task 4: MVP TTS Route
 
 **Files:**
+
 - Create: `src/server/providers/tts/minimax.ts`
 - Create: `src/server/providers/tts/minimax.test.ts`
 - Modify: `src/server/providers/tts/microsoft-unofficial.ts`
@@ -1030,11 +1022,12 @@ import { createMiniMaxTtsProvider } from "@/server/providers/tts/minimax";
 
 test("sends text to MiniMax and returns audio bytes", async () => {
   const audio = Buffer.from("audio").toString("base64");
-  const fetchImpl = vi.fn(async () =>
-    new Response(JSON.stringify({ data: { audio } }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
+  const fetchImpl = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ data: { audio } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
   ) as typeof fetch;
 
   const provider = createMiniMaxTtsProvider({
@@ -1058,7 +1051,9 @@ test("sends text to MiniMax and returns audio bytes", async () => {
 });
 
 test("maps MiniMax failures", async () => {
-  const fetchImpl = vi.fn(async () => new Response("bad", { status: 500 })) as typeof fetch;
+  const fetchImpl = vi.fn(
+    async () => new Response("bad", { status: 500 }),
+  ) as typeof fetch;
   const provider = createMiniMaxTtsProvider({
     apiKey: "key",
     groupId: "group",
@@ -1254,6 +1249,7 @@ Expected: tests PASS and commit succeeds.
 ## Task 5: MVP Summary API
 
 **Files:**
+
 - Create: `src/server/core/summarize-transcript.ts`
 - Create: `src/server/core/summarize-transcript.test.ts`
 - Create: `src/server/providers/summary/openai.ts`
@@ -1393,7 +1389,9 @@ function parseSummary(text: string, model: string): SummaryResult {
   return {
     title: String(parsed.title ?? "").trim(),
     summary: String(parsed.summary ?? "").trim(),
-    keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints.map(String) : [],
+    keyPoints: Array.isArray(parsed.keyPoints)
+      ? parsed.keyPoints.map(String)
+      : [],
     actionItems: Array.isArray(parsed.actionItems)
       ? parsed.actionItems.map(String)
       : [],
@@ -1493,6 +1491,7 @@ Expected: tests PASS and commit succeeds.
 ## Task 6: MVP UI Wiring
 
 **Files:**
+
 - Modify: `src/components/stt/stt-panel.tsx`
 - Modify: `src/components/stt/stt-panel.test.tsx`
 - Modify: `src/components/tts/tts-form.tsx`
@@ -1542,7 +1541,7 @@ Create `src/components/stt/summary-panel.test.tsx` that stubs `fetch`, selects `
 JSON.stringify({
   transcript: "hello transcript",
   model: "gpt-5.4-mini",
-})
+});
 ```
 
 - [ ] **Step 4: Wire UI**
@@ -1576,6 +1575,7 @@ Expected: tests PASS and commit succeeds.
 ## Task 7: MVP Docs And Verification
 
 **Files:**
+
 - Modify: `.env.example`
 - Modify: `README.md`
 
@@ -1590,25 +1590,23 @@ SUMMARY_PROVIDER=openai
 
 ENABLE_STT=true
 ENABLE_PUBLIC_STT=true
-ENABLE_STT_VOLCENGINE=true
-ENABLE_STT_VOSK=true
-ENABLE_TTS_MINIMAX=true
-ENABLE_TTS_MICROSOFT_UNOFFICIAL=true
+VOLCENGINE_STT_ENABLED=true
+VOSK_STT_ENABLED=true
+MINIMAX_TTS_ENABLED=true
+MICROSOFT_TTS_ENABLED=true
 
-VOLCENGINE_ACCESS_KEY_ID=
-VOLCENGINE_SECRET_ACCESS_KEY=
-VOLCENGINE_STT_APP_ID=
-VOLCENGINE_STT_RESOURCE_ID=volc.bigasr.auc_turbo
+VOLCENGINE_STT_API_KEY=
+VOLCENGINE_STT_MODEL=volc.bigasr.auc_turbo
 VOLCENGINE_STT_ENDPOINT=https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash
 
-VOSK_WS_URL=ws://vosk-cn:2700
+VOSK_STT_WS_URL=ws://vosk-cn:2700
 
-MINIMAX_API_KEY=
+MINIMAX_TTS_API_KEY=
 MINIMAX_GROUP_ID=
 MINIMAX_TTS_MODEL=speech-2.8-turbo
 MINIMAX_TTS_VOICE_ID=
 
-OPENAI_API_KEY=
+OPENAI_SUMMARY_API_KEY=
 OPENAI_SUMMARY_MODEL=gpt-5.5
 OPENAI_SUMMARY_MODELS=gpt-5.5,gpt-5.4-mini,gpt-5.4-nano
 ```

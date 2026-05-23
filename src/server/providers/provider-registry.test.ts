@@ -2,19 +2,17 @@ import { createProviderRegistry } from "@/server/providers/provider-registry";
 
 test("exposes MVP provider options and defaults", async () => {
   const registry = createProviderRegistry({
-    VOLCENGINE_ACCESS_KEY_ID: "ak",
-    VOLCENGINE_SECRET_ACCESS_KEY: "sk",
-    VOLCENGINE_STT_APP_ID: "app",
+    VOLCENGINE_STT_API_KEY: "api-key",
     VOLCENGINE_STT_MODEL_OPTIONS: "volc.bigasr.auc_turbo,volc.bigasr.auc",
-    VOSK_WS_URL: "ws://vosk-cn:2700",
-    MINIMAX_API_KEY: "minimax",
+    VOSK_STT_WS_URL: "ws://vosk-cn:2700",
+    MINIMAX_TTS_API_KEY: "minimax",
     MINIMAX_TTS_MODEL_OPTIONS: "speech-2.8-turbo,speech-2.8-hd",
     MINIMAX_TTS_VOICE_ID: "Chinese (Mandarin)_Warm_Girl",
     MINIMAX_TTS_VOICE_OPTIONS:
       "Chinese (Mandarin)_Warm_Girl,Chinese (Mandarin)_News_Anchor",
     MICROSOFT_TTS_VOICE_ID: "zh-CN-YunxiNeural",
     MICROSOFT_TTS_VOICE_OPTIONS: "zh-CN-YunxiNeural,en-US-JennyNeural",
-    OPENAI_API_KEY: "openai",
+    OPENAI_SUMMARY_API_KEY: "openai",
     OPENAI_SUMMARY_MODEL_OPTIONS: "gpt-5.5,gpt-5.5-mini",
   });
 
@@ -67,7 +65,7 @@ test("exposes MVP provider options and defaults", async () => {
 
 test("exposes only active STT providers", async () => {
   const registry = createProviderRegistry({
-    ENABLE_STT_VOLCENGINE: "true",
+    VOLCENGINE_STT_ENABLED: "true",
   });
 
   const status = await registry.getPublicStatus();
@@ -80,8 +78,8 @@ test("exposes only active STT providers", async () => {
 
 test("marks missing paid-provider credentials as unconfigured", async () => {
   const registry = createProviderRegistry({
-    VOSK_WS_URL: "   ",
-    OPENAI_API_KEY: "",
+    VOSK_STT_WS_URL: "   ",
+    OPENAI_SUMMARY_API_KEY: "",
   });
 
   const status = await registry.getPublicStatus();
@@ -115,4 +113,19 @@ test("marks missing paid-provider credentials as unconfigured", async () => {
   ]);
   expect(status.summary.available).toBe(false);
   expect(status.summary.reason).toBe("unconfigured");
+});
+
+test("does not require legacy Volcengine AppKey or Secret fields", async () => {
+  const registry = createProviderRegistry({
+    VOLCENGINE_STT_API_KEY: "api-key",
+    VOSK_STT_WS_URL: "   ",
+  });
+
+  const status = await registry.getPublicStatus();
+
+  expect(status.stt.providers[0]).toEqual({
+    id: "volcengine",
+    label: "Volcengine",
+    available: true,
+  });
 });

@@ -12,12 +12,9 @@ export type AppConfig = {
   enableSttVosk: boolean;
   enableTtsMinimax: boolean;
   enableTtsMicrosoftUnofficial: boolean;
-  volcengineAccessKeyId: string;
-  volcengineSecretAccessKey: string;
-  volcengineSttAppId: string;
+  volcengineSttApiKey: string;
   volcengineSttModel: string;
   volcengineSttModelOptions: string[];
-  volcengineSttResourceId: string;
   volcengineSttEndpoint: string;
   voskWsUrl: string;
   minimaxApiKey: string;
@@ -39,36 +36,33 @@ export type AppConfig = {
 type ConfigInput = {
   TTS_PROVIDER?: string;
   STT_PROVIDER?: string;
-  ENABLE_STT_VOLCENGINE?: string;
-  ENABLE_STT_VOSK?: string;
-  ENABLE_TTS_MINIMAX?: string;
-  ENABLE_TTS_MICROSOFT_UNOFFICIAL?: string;
-  VOLCENGINE_ACCESS_KEY_ID?: string;
-  VOLCENGINE_SECRET_ACCESS_KEY?: string;
-  VOLCENGINE_STT_APP_ID?: string;
+  VOLCENGINE_STT_ENABLED?: string;
+  VOLCENGINE_STT_API_KEY?: string;
   VOLCENGINE_STT_MODEL?: string;
   VOLCENGINE_STT_MODEL_OPTIONS?: string;
-  VOLCENGINE_STT_RESOURCE_ID?: string;
   VOLCENGINE_STT_ENDPOINT?: string;
-  VOSK_WS_URL?: string;
-  MINIMAX_API_KEY?: string;
+  VOSK_STT_ENABLED?: string;
+  VOSK_STT_WS_URL?: string;
+  MINIMAX_TTS_ENABLED?: string;
+  MINIMAX_TTS_API_KEY?: string;
   MINIMAX_TTS_MODEL?: string;
   MINIMAX_TTS_MODEL_OPTIONS?: string;
   MINIMAX_TTS_ENDPOINT?: string;
   MINIMAX_TTS_VOICE_ID?: string;
   MINIMAX_TTS_VOICE_OPTIONS?: string;
+  MICROSOFT_TTS_ENABLED?: string;
   MICROSOFT_TTS_VOICE_ID?: string;
   MICROSOFT_TTS_VOICE_OPTIONS?: string;
-  OPENAI_API_KEY?: string;
+  OPENAI_SUMMARY_API_KEY?: string;
   OPENAI_SUMMARY_MODEL?: string;
   OPENAI_SUMMARY_MODEL_OPTIONS?: string;
   OPENAI_SUMMARY_ENDPOINT?: string;
 };
 
-const DEFAULT_VOSK_WS_URL = "ws://vosk-cn:2700";
+const DEFAULT_VOSK_STT_WS_URL = "ws://vosk-cn:2700";
 const DEFAULT_VOLCENGINE_STT_ENDPOINT =
   "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash";
-const DEFAULT_VOLCENGINE_STT_RESOURCE_ID = "volc.bigasr.auc_turbo";
+const DEFAULT_VOLCENGINE_STT_MODEL = "volc.bigasr.auc_turbo";
 const DEFAULT_MINIMAX_TTS_MODEL = "speech-2.8-turbo";
 const DEFAULT_MINIMAX_TTS_ENDPOINT = "https://api.minimaxi.com/v1/t2a_v2";
 const DEFAULT_MINIMAX_TTS_VOICE_ID = "Chinese (Mandarin)_Warm_Girl";
@@ -162,8 +156,8 @@ function parseTtsProvider(value: string | undefined): TtsProviderId {
 export function loadConfig(input?: ConfigInput): AppConfig {
   const source = input ?? (process.env as ConfigInput);
   const volcengineSttModel = parseString(
-    source.VOLCENGINE_STT_MODEL ?? source.VOLCENGINE_STT_RESOURCE_ID,
-    DEFAULT_VOLCENGINE_STT_RESOURCE_ID,
+    source.VOLCENGINE_STT_MODEL,
+    DEFAULT_VOLCENGINE_STT_MODEL,
   );
   const minimaxTtsModel = parseString(
     source.MINIMAX_TTS_MODEL,
@@ -185,35 +179,30 @@ export function loadConfig(input?: ConfigInput): AppConfig {
   return {
     ttsProvider: parseTtsProvider(source.TTS_PROVIDER),
     sttProvider: parseSttProvider(source.STT_PROVIDER),
-    enableSttVolcengine: parseBoolean(source.ENABLE_STT_VOLCENGINE, true),
-    enableSttVosk: parseBoolean(source.ENABLE_STT_VOSK, true),
-    enableTtsMinimax: parseBoolean(source.ENABLE_TTS_MINIMAX, true),
+    enableSttVolcengine: parseBoolean(source.VOLCENGINE_STT_ENABLED, true),
+    enableSttVosk: parseBoolean(source.VOSK_STT_ENABLED, true),
+    enableTtsMinimax: parseBoolean(source.MINIMAX_TTS_ENABLED, true),
     enableTtsMicrosoftUnofficial: parseBoolean(
-      source.ENABLE_TTS_MICROSOFT_UNOFFICIAL,
+      source.MICROSOFT_TTS_ENABLED,
       true,
     ),
-    volcengineAccessKeyId: parseOptionalString(source.VOLCENGINE_ACCESS_KEY_ID),
-    volcengineSecretAccessKey: parseOptionalString(
-      source.VOLCENGINE_SECRET_ACCESS_KEY,
-    ),
-    volcengineSttAppId: parseOptionalString(source.VOLCENGINE_STT_APP_ID),
+    volcengineSttApiKey: parseOptionalString(source.VOLCENGINE_STT_API_KEY),
     volcengineSttModel,
     volcengineSttModelOptions: withDefaultOption(
       volcengineSttModel,
       parseStringList(source.VOLCENGINE_STT_MODEL_OPTIONS, [
-        DEFAULT_VOLCENGINE_STT_RESOURCE_ID,
+        DEFAULT_VOLCENGINE_STT_MODEL,
       ]),
-    ),
-    volcengineSttResourceId: parseString(
-      source.VOLCENGINE_STT_RESOURCE_ID ?? source.VOLCENGINE_STT_MODEL,
-      DEFAULT_VOLCENGINE_STT_RESOURCE_ID,
     ),
     volcengineSttEndpoint: parseString(
       source.VOLCENGINE_STT_ENDPOINT,
       DEFAULT_VOLCENGINE_STT_ENDPOINT,
     ),
-    voskWsUrl: parseOptionalString(source.VOSK_WS_URL, DEFAULT_VOSK_WS_URL),
-    minimaxApiKey: parseOptionalString(source.MINIMAX_API_KEY),
+    voskWsUrl: parseOptionalString(
+      source.VOSK_STT_WS_URL,
+      DEFAULT_VOSK_STT_WS_URL,
+    ),
+    minimaxApiKey: parseOptionalString(source.MINIMAX_TTS_API_KEY),
     minimaxTtsModel,
     minimaxTtsModelOptions: withDefaultOption(
       minimaxTtsModel,
@@ -244,7 +233,7 @@ export function loadConfig(input?: ConfigInput): AppConfig {
         DEFAULT_MICROSOFT_TTS_VOICE_OPTIONS,
       ),
     ),
-    openaiApiKey: parseOptionalString(source.OPENAI_API_KEY),
+    openaiApiKey: parseOptionalString(source.OPENAI_SUMMARY_API_KEY),
     openaiSummaryModel,
     openaiSummaryModelOptions: withDefaultOption(
       openaiSummaryModel,

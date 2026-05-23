@@ -68,10 +68,6 @@ export function TranscriptionResult({
           </button>
         </div>
       ) : null}
-
-      {result.provider ? (
-        <p className="text-xs text-[var(--muted)]">Provider: {result.provider}</p>
-      ) : null}
     </div>
   );
 }

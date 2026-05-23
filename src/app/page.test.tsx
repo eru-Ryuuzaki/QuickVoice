@@ -3,17 +3,13 @@
 import HomePage from "@/app/page";
 
 test("renders the QuickVoice workbench shell", async () => {
-  const previousEnableSttVolcengine = process.env.ENABLE_STT_VOLCENGINE;
-  const previousEnableSttVosk = process.env.ENABLE_STT_VOSK;
-  const previousVolcengineAccessKeyId = process.env.VOLCENGINE_ACCESS_KEY_ID;
-  const previousVolcengineSecretAccessKey = process.env.VOLCENGINE_SECRET_ACCESS_KEY;
-  const previousVolcengineSttAppId = process.env.VOLCENGINE_STT_APP_ID;
+  const previousEnableSttVolcengine = process.env.VOLCENGINE_STT_ENABLED;
+  const previousEnableSttVosk = process.env.VOSK_STT_ENABLED;
+  const previousVolcengineSttApiKey = process.env.VOLCENGINE_STT_API_KEY;
 
-  process.env.ENABLE_STT_VOLCENGINE = "true";
-  process.env.ENABLE_STT_VOSK = "true";
-  process.env.VOLCENGINE_ACCESS_KEY_ID = "ak";
-  process.env.VOLCENGINE_SECRET_ACCESS_KEY = "sk";
-  process.env.VOLCENGINE_STT_APP_ID = "app";
+  process.env.VOLCENGINE_STT_ENABLED = "true";
+  process.env.VOSK_STT_ENABLED = "true";
+  process.env.VOLCENGINE_STT_API_KEY = "api-key";
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue(
@@ -41,10 +37,8 @@ test("renders the QuickVoice workbench shell", async () => {
       expect(fetch).toHaveBeenCalled();
     });
   } finally {
-    process.env.ENABLE_STT_VOLCENGINE = previousEnableSttVolcengine;
-    process.env.ENABLE_STT_VOSK = previousEnableSttVosk;
-    process.env.VOLCENGINE_ACCESS_KEY_ID = previousVolcengineAccessKeyId;
-    process.env.VOLCENGINE_SECRET_ACCESS_KEY = previousVolcengineSecretAccessKey;
-    process.env.VOLCENGINE_STT_APP_ID = previousVolcengineSttAppId;
+    process.env.VOLCENGINE_STT_ENABLED = previousEnableSttVolcengine;
+    process.env.VOSK_STT_ENABLED = previousEnableSttVosk;
+    process.env.VOLCENGINE_STT_API_KEY = previousVolcengineSttApiKey;
   }
 });

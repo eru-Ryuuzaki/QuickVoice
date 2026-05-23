@@ -5,26 +5,23 @@ function createAudioFile(bytes: Uint8Array) {
     type: "audio/mpeg",
   });
   Object.defineProperty(file, "arrayBuffer", {
-    value: async () => bytes.buffer.slice(
-      bytes.byteOffset,
-      bytes.byteOffset + bytes.byteLength,
-    ),
+    value: async () =>
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
   });
   return file;
 }
 
 test("posts audio to Volcengine and returns transcript text", async () => {
-  const fetchImpl = vi.fn(async () =>
-    new Response(JSON.stringify({ result: { text: "hello volcengine" } }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
+  const fetchImpl = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ result: { text: "hello volcengine" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
   ) as typeof fetch;
 
   const provider = createVolcengineSttProvider({
-    accessKeyId: "ak",
-    secretAccessKey: "sk",
-    appId: "app",
+    apiKey: "api-key",
     resourceId: "resource",
     endpoint: "https://example.test/recognize",
     fetchImpl,
@@ -41,8 +38,7 @@ test("posts audio to Volcengine and returns transcript text", async () => {
     expect.objectContaining({
       method: "POST",
       headers: expect.objectContaining({
-        "X-Api-Access-Key": "ak",
-        "X-Api-App-Key": "app",
+        "X-Api-Key": "api-key",
         "X-Api-Request-Id": expect.any(String),
         "X-Api-Resource-Id": "resource",
         "X-Api-Sequence": "-1",
@@ -51,23 +47,26 @@ test("posts audio to Volcengine and returns transcript text", async () => {
     }),
   );
   const [, requestOptions] = fetchImpl.mock.calls[0] ?? [];
+  expect(requestOptions?.headers).not.toMatchObject({
+    "X-Api-Access-Key": expect.any(String),
+    "X-Api-App-Key": expect.any(String),
+  });
   const body = JSON.parse(String(requestOptions?.body));
-  expect(body.user.uid).toBe("app");
+  expect(body.user.uid).toBe("api-key");
   expect(body.audio.data).toBe(Buffer.from([1, 2, 3]).toString("base64"));
 });
 
 test("uses request model as Volcengine resource id when supplied", async () => {
-  const fetchImpl = vi.fn(async () =>
-    new Response(JSON.stringify({ result: { text: "hello volcengine" } }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
+  const fetchImpl = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ result: { text: "hello volcengine" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
   ) as typeof fetch;
 
   const provider = createVolcengineSttProvider({
-    accessKeyId: "ak",
-    secretAccessKey: "sk",
-    appId: "app",
+    apiKey: "api-key",
     resourceId: "resource",
     endpoint: "https://example.test/recognize",
     fetchImpl,
@@ -90,11 +89,11 @@ test("uses request model as Volcengine resource id when supplied", async () => {
 });
 
 test("maps Volcengine failures", async () => {
-  const fetchImpl = vi.fn(async () => new Response("bad", { status: 503 })) as typeof fetch;
+  const fetchImpl = vi.fn(
+    async () => new Response("bad", { status: 503 }),
+  ) as typeof fetch;
   const provider = createVolcengineSttProvider({
-    accessKeyId: "ak",
-    secretAccessKey: "sk",
-    appId: "app",
+    apiKey: "api-key",
     resourceId: "resource",
     endpoint: "https://example.test/recognize",
     fetchImpl,

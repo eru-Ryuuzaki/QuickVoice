@@ -5,9 +5,7 @@ import { AppError } from "@/server/platform/errors";
 import type { SttProvider } from "@/server/providers/types";
 
 type VolcengineSttOptions = {
-  accessKeyId?: string;
-  secretAccessKey?: string;
-  appId?: string;
+  apiKey?: string;
   resourceId?: string;
   endpoint?: string;
   fetchImpl?: typeof fetch;
@@ -29,9 +27,7 @@ async function readFileBuffer(file: File) {
 function getDefaults() {
   const config = loadConfig();
   return {
-    accessKeyId: config.volcengineAccessKeyId,
-    secretAccessKey: config.volcengineSecretAccessKey,
-    appId: config.volcengineSttAppId,
+    apiKey: config.volcengineSttApiKey,
     resourceId: config.volcengineSttModel,
     endpoint: config.volcengineSttEndpoint,
   };
@@ -41,9 +37,7 @@ export function createVolcengineSttProvider(
   options: VolcengineSttOptions = {},
 ): SttProvider {
   const defaults = getDefaults();
-  const accessKeyId = options.accessKeyId ?? defaults.accessKeyId;
-  const secretAccessKey = options.secretAccessKey ?? defaults.secretAccessKey;
-  const appId = options.appId ?? defaults.appId;
+  const apiKey = options.apiKey ?? defaults.apiKey;
   const resourceId = options.resourceId ?? defaults.resourceId;
   const endpoint = options.endpoint ?? defaults.endpoint;
   const fetchImpl = options.fetchImpl ?? fetch;
@@ -52,7 +46,7 @@ export function createVolcengineSttProvider(
     id: "volcengine",
     label: "Volcengine",
     async transcribe(input) {
-      if (!accessKeyId || !secretAccessKey || !appId) {
+      if (!apiKey) {
         throw new AppError(
           "PROVIDER_UNAVAILABLE",
           "PROVIDER_UNAVAILABLE: Volcengine STT is not configured",
@@ -67,15 +61,14 @@ export function createVolcengineSttProvider(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Api-Access-Key": accessKeyId,
-          "X-Api-App-Key": appId,
+          "X-Api-Key": apiKey,
           "X-Api-Resource-Id": requestResourceId,
           "X-Api-Request-Id": randomUUID(),
           "X-Api-Sequence": "-1",
         },
         body: JSON.stringify({
           user: {
-            uid: appId,
+            uid: apiKey,
           },
           audio: {
             data: audioData,

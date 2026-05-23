@@ -2,28 +2,23 @@ import { GET } from "@/app/api/providers/status/route";
 
 test("returns provider status for public UI", async () => {
   const previousEnv = {
-    ENABLE_STT_VOLCENGINE: process.env.ENABLE_STT_VOLCENGINE,
-    ENABLE_STT_VOSK: process.env.ENABLE_STT_VOSK,
-    ENABLE_TTS_MINIMAX: process.env.ENABLE_TTS_MINIMAX,
-    ENABLE_TTS_MICROSOFT_UNOFFICIAL:
-      process.env.ENABLE_TTS_MICROSOFT_UNOFFICIAL,
-    VOLCENGINE_ACCESS_KEY_ID: process.env.VOLCENGINE_ACCESS_KEY_ID,
-    VOLCENGINE_SECRET_ACCESS_KEY: process.env.VOLCENGINE_SECRET_ACCESS_KEY,
-    VOLCENGINE_STT_APP_ID: process.env.VOLCENGINE_STT_APP_ID,
-    MINIMAX_API_KEY: process.env.MINIMAX_API_KEY,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    VOLCENGINE_STT_ENABLED: process.env.VOLCENGINE_STT_ENABLED,
+    VOSK_STT_ENABLED: process.env.VOSK_STT_ENABLED,
+    MINIMAX_TTS_ENABLED: process.env.MINIMAX_TTS_ENABLED,
+    MICROSOFT_TTS_ENABLED: process.env.MICROSOFT_TTS_ENABLED,
+    VOLCENGINE_STT_API_KEY: process.env.VOLCENGINE_STT_API_KEY,
+    MINIMAX_TTS_API_KEY: process.env.MINIMAX_TTS_API_KEY,
+    OPENAI_SUMMARY_API_KEY: process.env.OPENAI_SUMMARY_API_KEY,
     OPENAI_SUMMARY_MODEL_OPTIONS: process.env.OPENAI_SUMMARY_MODEL_OPTIONS,
   };
 
-  process.env.ENABLE_STT_VOLCENGINE = "true";
-  process.env.ENABLE_STT_VOSK = "false";
-  process.env.ENABLE_TTS_MINIMAX = "true";
-  process.env.ENABLE_TTS_MICROSOFT_UNOFFICIAL = "true";
-  process.env.VOLCENGINE_ACCESS_KEY_ID = "ak";
-  process.env.VOLCENGINE_SECRET_ACCESS_KEY = "sk";
-  process.env.VOLCENGINE_STT_APP_ID = "app";
-  process.env.MINIMAX_API_KEY = "minimax";
-  process.env.OPENAI_API_KEY = "openai";
+  process.env.VOLCENGINE_STT_ENABLED = "true";
+  process.env.VOSK_STT_ENABLED = "false";
+  process.env.MINIMAX_TTS_ENABLED = "true";
+  process.env.MICROSOFT_TTS_ENABLED = "true";
+  process.env.VOLCENGINE_STT_API_KEY = "api-key";
+  process.env.MINIMAX_TTS_API_KEY = "minimax";
+  process.env.OPENAI_SUMMARY_API_KEY = "openai";
   process.env.OPENAI_SUMMARY_MODEL_OPTIONS = "gpt-5.5,gpt-5.5-mini";
 
   try {

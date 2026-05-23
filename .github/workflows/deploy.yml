@@ -11,19 +11,19 @@ env:
   APP_URL: ${{ vars.APP_URL || 'https://quickvoice.ryuuzaki.top' }}
   STT_PROVIDER: ${{ vars.STT_PROVIDER || 'volcengine' }}
   TTS_PROVIDER: ${{ vars.TTS_PROVIDER || 'minimax' }}
-  ENABLE_STT_VOLCENGINE: ${{ vars.ENABLE_STT_VOLCENGINE || 'true' }}
+  VOLCENGINE_STT_ENABLED: ${{ vars.VOLCENGINE_STT_ENABLED || 'true' }}
   VOLCENGINE_STT_MODEL: ${{ vars.VOLCENGINE_STT_MODEL || 'volc.bigasr.auc_turbo' }}
   VOLCENGINE_STT_MODEL_OPTIONS: ${{ vars.VOLCENGINE_STT_MODEL_OPTIONS || 'volc.bigasr.auc_turbo' }}
   VOLCENGINE_STT_ENDPOINT: ${{ vars.VOLCENGINE_STT_ENDPOINT || 'https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash' }}
-  ENABLE_STT_VOSK: ${{ vars.ENABLE_STT_VOSK || 'true' }}
-  VOSK_WS_URL: ${{ vars.VOSK_WS_URL || 'ws://vosk-cn:2700' }}
-  ENABLE_TTS_MINIMAX: ${{ vars.ENABLE_TTS_MINIMAX || 'true' }}
+  VOSK_STT_ENABLED: ${{ vars.VOSK_STT_ENABLED || 'true' }}
+  VOSK_STT_WS_URL: ${{ vars.VOSK_STT_WS_URL || 'ws://vosk-cn:2700' }}
+  MINIMAX_TTS_ENABLED: ${{ vars.MINIMAX_TTS_ENABLED || 'true' }}
   MINIMAX_TTS_MODEL: ${{ vars.MINIMAX_TTS_MODEL || 'speech-2.8-turbo' }}
   MINIMAX_TTS_MODEL_OPTIONS: ${{ vars.MINIMAX_TTS_MODEL_OPTIONS || 'speech-2.8-turbo,speech-2.8-hd,speech-2.6-turbo,speech-2.6-hd' }}
   MINIMAX_TTS_ENDPOINT: ${{ vars.MINIMAX_TTS_ENDPOINT || 'https://api.minimaxi.com/v1/t2a_v2' }}
   MINIMAX_TTS_VOICE_ID: ${{ vars.MINIMAX_TTS_VOICE_ID || 'Chinese (Mandarin)_Warm_Girl' }}
   MINIMAX_TTS_VOICE_OPTIONS: ${{ vars.MINIMAX_TTS_VOICE_OPTIONS || 'Chinese (Mandarin)_Warm_Girl,Chinese (Mandarin)_News_Anchor,English_expressive_narrator' }}
-  ENABLE_TTS_MICROSOFT_UNOFFICIAL: ${{ vars.ENABLE_TTS_MICROSOFT_UNOFFICIAL || 'true' }}
+  MICROSOFT_TTS_ENABLED: ${{ vars.MICROSOFT_TTS_ENABLED || 'true' }}
   MICROSOFT_TTS_VOICE_ID: ${{ vars.MICROSOFT_TTS_VOICE_ID || 'zh-CN-XiaoxiaoNeural' }}
   MICROSOFT_TTS_VOICE_OPTIONS: ${{ vars.MICROSOFT_TTS_VOICE_OPTIONS || 'zh-CN-XiaoxiaoNeural,zh-CN-YunxiNeural' }}
   OPENAI_SUMMARY_MODEL: ${{ vars.OPENAI_SUMMARY_MODEL || 'gpt-5.5' }}
@@ -61,26 +61,24 @@ jobs:
           echo "APP_URL=${{ env.APP_URL }}" >> .env
           echo "STT_PROVIDER=${{ env.STT_PROVIDER }}" >> .env
           echo "TTS_PROVIDER=${{ env.TTS_PROVIDER }}" >> .env
-          echo "ENABLE_STT_VOLCENGINE=${{ env.ENABLE_STT_VOLCENGINE }}" >> .env
-          echo "VOLCENGINE_ACCESS_KEY_ID=${{ secrets.VOLCENGINE_ACCESS_KEY_ID }}" >> .env
-          echo "VOLCENGINE_SECRET_ACCESS_KEY=${{ secrets.VOLCENGINE_SECRET_ACCESS_KEY }}" >> .env
-          echo "VOLCENGINE_STT_APP_ID=${{ secrets.VOLCENGINE_STT_APP_ID }}" >> .env
+          echo "VOLCENGINE_STT_ENABLED=${{ env.VOLCENGINE_STT_ENABLED }}" >> .env
+          echo "VOLCENGINE_STT_API_KEY=${{ secrets.VOLCENGINE_STT_API_KEY }}" >> .env
           echo "VOLCENGINE_STT_MODEL=${{ env.VOLCENGINE_STT_MODEL }}" >> .env
           echo "VOLCENGINE_STT_MODEL_OPTIONS=${{ env.VOLCENGINE_STT_MODEL_OPTIONS }}" >> .env
           echo "VOLCENGINE_STT_ENDPOINT=${{ env.VOLCENGINE_STT_ENDPOINT }}" >> .env
-          echo "ENABLE_STT_VOSK=${{ env.ENABLE_STT_VOSK }}" >> .env
-          echo "VOSK_WS_URL=${{ env.VOSK_WS_URL }}" >> .env
-          echo "ENABLE_TTS_MINIMAX=${{ env.ENABLE_TTS_MINIMAX }}" >> .env
-          echo "MINIMAX_API_KEY=${{ secrets.MINIMAX_API_KEY }}" >> .env
+          echo "VOSK_STT_ENABLED=${{ env.VOSK_STT_ENABLED }}" >> .env
+          echo "VOSK_STT_WS_URL=${{ env.VOSK_STT_WS_URL }}" >> .env
+          echo "MINIMAX_TTS_ENABLED=${{ env.MINIMAX_TTS_ENABLED }}" >> .env
+          echo "MINIMAX_TTS_API_KEY=${{ secrets.MINIMAX_TTS_API_KEY }}" >> .env
           echo "MINIMAX_TTS_MODEL=${{ env.MINIMAX_TTS_MODEL }}" >> .env
           echo "MINIMAX_TTS_MODEL_OPTIONS=${{ env.MINIMAX_TTS_MODEL_OPTIONS }}" >> .env
           echo "MINIMAX_TTS_ENDPOINT=${{ env.MINIMAX_TTS_ENDPOINT }}" >> .env
           echo "MINIMAX_TTS_VOICE_ID=${{ env.MINIMAX_TTS_VOICE_ID }}" >> .env
           echo "MINIMAX_TTS_VOICE_OPTIONS=${{ env.MINIMAX_TTS_VOICE_OPTIONS }}" >> .env
-          echo "ENABLE_TTS_MICROSOFT_UNOFFICIAL=${{ env.ENABLE_TTS_MICROSOFT_UNOFFICIAL }}" >> .env
+          echo "MICROSOFT_TTS_ENABLED=${{ env.MICROSOFT_TTS_ENABLED }}" >> .env
           echo "MICROSOFT_TTS_VOICE_ID=${{ env.MICROSOFT_TTS_VOICE_ID }}" >> .env
           echo "MICROSOFT_TTS_VOICE_OPTIONS=${{ env.MICROSOFT_TTS_VOICE_OPTIONS }}" >> .env
-          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+          echo "OPENAI_SUMMARY_API_KEY=${{ secrets.OPENAI_SUMMARY_API_KEY }}" >> .env
           echo "OPENAI_SUMMARY_MODEL=${{ env.OPENAI_SUMMARY_MODEL }}" >> .env
           echo "OPENAI_SUMMARY_MODEL_OPTIONS=${{ env.OPENAI_SUMMARY_MODEL_OPTIONS }}" >> .env
           echo "OPENAI_SUMMARY_ENDPOINT=${{ env.OPENAI_SUMMARY_ENDPOINT }}" >> .env

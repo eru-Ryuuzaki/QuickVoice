@@ -38,7 +38,7 @@ test("defaults to the MVP provider stack", () => {
 test("keeps Vosk configurable as an STT provider", () => {
   const config = loadConfig({
     STT_PROVIDER: "vosk",
-    VOSK_WS_URL: " ws://localhost:2700 ",
+    VOSK_STT_WS_URL: " ws://localhost:2700 ",
   });
 
   expect(config.sttProvider).toBe("vosk");
@@ -65,6 +65,7 @@ test("parses manual model defaults and endpoint overrides", () => {
     MINIMAX_TTS_VOICE_OPTIONS: " minimax-main, minimax-backup ",
     MICROSOFT_TTS_VOICE_ID: " zh-CN-YunxiNeural ",
     MICROSOFT_TTS_VOICE_OPTIONS: " zh-CN-YunxiNeural, en-US-JennyNeural ",
+    OPENAI_SUMMARY_API_KEY: " openai-key ",
     OPENAI_SUMMARY_MODEL: " gpt-custom ",
     OPENAI_SUMMARY_MODEL_OPTIONS: " gpt-custom, gpt-alt ",
     OPENAI_SUMMARY_ENDPOINT: " https://summary.example.test ",
@@ -77,7 +78,10 @@ test("parses manual model defaults and endpoint overrides", () => {
   ]);
   expect(config.volcengineSttEndpoint).toBe("https://stt.example.test");
   expect(config.minimaxTtsModel).toBe("speech-custom");
-  expect(config.minimaxTtsModelOptions).toEqual(["speech-custom", "speech-alt"]);
+  expect(config.minimaxTtsModelOptions).toEqual([
+    "speech-custom",
+    "speech-alt",
+  ]);
   expect(config.minimaxTtsEndpoint).toBe("https://tts.example.test");
   expect(config.minimaxTtsVoiceId).toBe("minimax-main");
   expect(config.minimaxTtsVoiceOptions).toEqual([
@@ -93,6 +97,7 @@ test("parses manual model defaults and endpoint overrides", () => {
     "zh-CN-YunxiNeural",
     "en-US-JennyNeural",
   ]);
+  expect(config.openaiApiKey).toBe("openai-key");
   expect(config).not.toHaveProperty("microsoftTtsStyle");
   expect(config).not.toHaveProperty("microsoftTtsStyleOptions");
   expect(config.openaiSummaryModel).toBe("gpt-custom");
