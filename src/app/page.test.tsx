@@ -5,12 +5,12 @@ import HomePage from "@/app/page";
 test("renders the QuickVoice workbench shell", async () => {
   const previousEnableStt = process.env.ENABLE_STT;
   const previousEnablePublicStt = process.env.ENABLE_PUBLIC_STT;
-  const previousEnableSttSiliconflow = process.env.ENABLE_STT_SILICONFLOW;
+  const previousEnableSttVolcengine = process.env.ENABLE_STT_VOLCENGINE;
   const previousEnableSttVosk = process.env.ENABLE_STT_VOSK;
 
   process.env.ENABLE_STT = "true";
   process.env.ENABLE_PUBLIC_STT = "false";
-  process.env.ENABLE_STT_SILICONFLOW = "true";
+  process.env.ENABLE_STT_VOLCENGINE = "true";
   process.env.ENABLE_STT_VOSK = "true";
   vi.stubGlobal(
     "fetch",
@@ -31,7 +31,7 @@ test("renders the QuickVoice workbench shell", async () => {
       screen.getByRole("button", { name: "Text to Speech" }),
     ).toBeInTheDocument();
     expect(screen.getByText("STT UNAVAILABLE")).toBeInTheDocument();
-    expect(screen.getByText("DEFAULT SILICONFLOW")).toBeInTheDocument();
+    expect(screen.getByText("DEFAULT VOLCENGINE")).toBeInTheDocument();
     expect(screen.getByText("VOSK CN UNAVAILABLE")).toBeInTheDocument();
 
     await waitFor(() => {
@@ -40,7 +40,7 @@ test("renders the QuickVoice workbench shell", async () => {
   } finally {
     process.env.ENABLE_STT = previousEnableStt;
     process.env.ENABLE_PUBLIC_STT = previousEnablePublicStt;
-    process.env.ENABLE_STT_SILICONFLOW = previousEnableSttSiliconflow;
+    process.env.ENABLE_STT_VOLCENGINE = previousEnableSttVolcengine;
     process.env.ENABLE_STT_VOSK = previousEnableSttVosk;
   }
 });

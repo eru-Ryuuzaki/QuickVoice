@@ -16,13 +16,38 @@ test("renders top rail, activity rail, and two-pane work area", async () => {
   render(
     <AppShell
       status={{
-        tts: { available: true, provider: "microsoft_unofficial" },
+        tts: {
+          available: true,
+          defaultProvider: "minimax",
+          providers: [
+            { id: "minimax", label: "MiniMax", available: true },
+            {
+              id: "microsoft_unofficial",
+              label: "Microsoft Unofficial",
+              available: true,
+            },
+          ],
+        },
         stt: {
           available: true,
-          defaultProvider: "siliconflow",
+          defaultProvider: "volcengine",
           providers: [
-            { id: "siliconflow", label: "SiliconFlow", available: true },
-            { id: "vosk", label: "Vosk CN", available: false, reason: "disabled" },
+            { id: "volcengine", label: "Volcengine", available: true },
+            {
+              id: "vosk",
+              label: "Vosk CN",
+              available: false,
+              reason: "disabled",
+            },
+          ],
+        },
+        summary: {
+          provider: "openai",
+          available: true,
+          defaultModel: "gpt-5.5",
+          models: [
+            { id: "gpt-5.5", label: "gpt-5.5", default: true },
+            { id: "gpt-5.4-mini", label: "gpt-5.4-mini", default: false },
           ],
         },
       }}
@@ -32,7 +57,7 @@ test("renders top rail, activity rail, and two-pane work area", async () => {
   expect(screen.getByText("QuickVoice")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Text to Speech" })).toBeInTheDocument();
   expect(screen.getByText("Audio Output")).toBeInTheDocument();
-  expect(screen.getByText("DEFAULT SILICONFLOW")).toBeInTheDocument();
+  expect(screen.getByText("DEFAULT VOLCENGINE")).toBeInTheDocument();
   expect(screen.getByTestId("activity-rail")).toBeInTheDocument();
 
   await waitFor(() => {
