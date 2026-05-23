@@ -4,17 +4,17 @@ Date: 2026-05-23
 Project: QuickVoice
 Status: Approved for spec drafting, pending user review before implementation planning
 
-Design intent: Replace the broad provider discussion with one clear production-oriented chain: Volcengine for transcription, MiniMax for speech generation, and OpenAI for transcript summarization.
+Design intent: Replace automatic multi-provider fallback with explicit provider choice. Volcengine, MiniMax, and OpenAI are the recommended defaults, while the UI keeps concise provider selectors for capabilities that have multiple enabled providers.
 
 ## 1. Decision Summary
 
-QuickVoice should move from a many-provider exploration model to a focused three-capability stack:
+QuickVoice should move from a many-provider fallback model to a focused three-capability stack:
 
 - STT: Volcengine Doubao big-model recording-file recognition
 - TTS: MiniMax Speech, defaulting to `speech-2.8-turbo`
 - Summary: OpenAI Responses API, defaulting to `gpt-5.5`
 
-The first implementation should not include automatic fallback between vendors. Each capability has one configured primary provider. Failures should be explicit and visible to the user.
+The first implementation should not include automatic fallback between vendors. Each capability has a configured default provider, and STT/TTS should allow explicit user selection among enabled providers. If a selected provider fails, the app should show that failure instead of silently switching vendors.
 
 ## 2. Product Scope
 
@@ -26,12 +26,14 @@ The first implementation should not include automatic fallback between vendors. 
 - Show a structured summary result.
 - Convert text to speech through MiniMax.
 - Keep provider selection configurable through environment variables.
-- Keep existing legacy providers in code only if doing so is low-risk, but hide them from the default public UI.
+- Preserve the existing STT provider selector pattern.
+- Add an equivalent TTS provider selector if more than one TTS provider is enabled.
+- Keep existing legacy providers in code only if doing so is low-risk, and expose them only when explicitly enabled.
 
 ### 2.2 Out of scope
 
 - Automatic vendor fallback.
-- Provider ranking or runtime provider selection.
+- Provider ranking.
 - User-facing provider comparison UI.
 - Voice cloning for anonymous public users.
 - Real-time STT streaming.
@@ -52,6 +54,8 @@ Rationale:
 - A clearer production provider than the current public-token SiliconFlow path.
 
 The first version should use the uploaded-file transcription flow rather than real-time recognition. The current QuickVoice UI already follows an upload-and-submit model, so this avoids unnecessary frontend and WebSocket complexity.
+
+The existing STT provider selector should remain. Volcengine should become the default option, while other enabled STT providers can remain selectable for manual testing or operator-controlled exposure. This is explicit selection, not fallback.
 
 ### 3.2 TTS: MiniMax Speech
 
@@ -77,6 +81,8 @@ Rationale:
 - HD can be added later as an explicit quality mode, not as the anonymous default.
 
 Voice cloning should not be exposed in the first public version. It adds consent, abuse, moderation, and cost concerns that do not belong in the initial provider migration.
+
+TTS should gain provider selection when multiple TTS providers are enabled. MiniMax should be the default option, and the current Microsoft unofficial provider may remain selectable only when explicitly enabled. A failed MiniMax request should not automatically retry through Microsoft or OpenAI.
 
 ### 3.3 Summary: OpenAI
 
@@ -116,6 +122,8 @@ text input
 
 Summary should run after a successful transcript exists. If summary fails, the transcript should remain available.
 
+When the user explicitly selects a non-default STT or TTS provider, the flow should use that selected provider for that request only. The configured default controls initial selection and server-side fallback for missing provider fields, not automatic recovery after provider failure.
+
 ## 5. Failure Behavior
 
 No automatic fallback should run in v1 of this provider stack.
@@ -126,6 +134,7 @@ Failure rules:
 - Summary failure: keep the transcript visible and show a summary-specific error.
 - TTS failure: show a normalized TTS error and keep source text intact.
 - Provider configuration failure: mark the affected capability unavailable in provider status.
+- User-selected provider failure: show the selected provider's normalized failure and do not retry with another provider.
 
 This keeps cost, debugging, and user expectations straightforward.
 
@@ -143,6 +152,12 @@ Add:
 - `POST /api/summary`
 
 `POST /api/summary` should accept transcript text and return a structured summary payload. It should not accept audio directly.
+
+Provider fields:
+
+- `POST /api/stt` should continue accepting a `provider` form field.
+- `POST /api/tts` should accept a `provider` form field when multiple TTS providers are enabled.
+- `POST /api/summary` should not expose provider selection in the first version because OpenAI is the only selected summary provider.
 
 Recommended response shape:
 
@@ -185,22 +200,26 @@ OPENAI_SUMMARY_MODEL=gpt-5.5
 
 Provider-specific names may be adjusted during implementation to match official SDK or REST requirements, but the public configuration intent should remain the same:
 
-- one active STT provider
-- one active TTS provider
-- one active summary provider
+- one default STT provider
+- one default TTS provider
+- one summary provider
+- optional explicit enable flags for additional selectable STT/TTS providers
 
-## 8. UI Changes
+## 8. Provider Selection UI
 
-The public UI should avoid showing a long provider selector.
+The public UI should keep provider selection concise. The selector should be a control for choosing the provider used by the next request, not a comparison table or provider marketplace.
 
 Recommended UI behavior:
 
-- STT panel shows upload, transcript, and summarize actions.
-- TTS panel shows text input, voice controls, and generation actions.
+- STT panel shows the existing provider selector, upload, transcript, and summarize actions.
+- TTS panel shows text input, provider selector when applicable, voice controls, and generation actions.
 - Provider status can show concise capability status: STT, TTS, Summary.
-- Existing provider selector controls should be removed or hidden in the default public UI.
+- Selectors should list only enabled public providers.
+- Disabled providers can appear as unavailable only when useful for operator visibility; they should not dominate the UI.
+- The configured default provider should be clearly marked.
+- Summary does not need a provider selector in v1.
 
-The product should feel like one configured tool, not a vendor test bench.
+The product should feel like a configured speech workbench with explicit provider choice, not a vendor test bench.
 
 ## 9. Guardrails
 
@@ -226,6 +245,8 @@ Add or update tests for:
 - OpenAI summary use case with structured output validation.
 - `POST /api/summary` validation and error mapping.
 - Provider status when one of STT, TTS, or summary is unconfigured.
+- STT provider selector uses the chosen provider.
+- TTS provider selector uses the chosen provider when multiple providers are enabled.
 - UI flow where STT succeeds and summary fails while transcript remains visible.
 
 Network calls should be mocked in automated tests.
@@ -236,9 +257,11 @@ The provider stack migration is complete when:
 
 - Public STT uses Volcengine by default.
 - Public TTS uses MiniMax by default.
+- STT provider selection remains available and uses the selected provider.
+- TTS provider selection is available when more than one public TTS provider is enabled.
 - A transcript can be summarized through OpenAI.
 - No automatic fallback is performed.
-- Existing legacy provider options are not exposed as default public choices.
+- Existing legacy provider options are exposed only when explicitly enabled.
 - Provider status includes summary availability.
 - All paid-provider calls are guarded by validation and rate limits.
 
