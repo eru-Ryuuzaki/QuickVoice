@@ -3,7 +3,8 @@ import type { TtsProvider } from "@/server/providers/types";
 
 function createFakeProvider(): TtsProvider {
   return {
-    id: "fake-provider",
+    id: "minimax",
+    label: "MiniMax",
     async synthesize(request) {
       return new TextEncoder().encode(request.text).buffer;
     },
@@ -34,7 +35,8 @@ test("splits long text and synthesizes every chunk", async () => {
   );
 
   const provider: TtsProvider = {
-    id: "fake-provider",
+    id: "minimax",
+    label: "MiniMax",
     synthesize,
   };
 

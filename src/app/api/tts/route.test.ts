@@ -1,6 +1,6 @@
 import { createTtsRouteHandler } from "@/app/api/tts/route";
 import type { RateLimiter } from "@/server/platform/rate-limit";
-import type { TtsProvider } from "@/server/providers/types";
+import type { PublicProviderStatus, TtsProvider } from "@/server/providers/types";
 
 function createRequest(formData: FormData) {
   return new Request("http://localhost/api/tts", {
@@ -22,42 +22,117 @@ function createAllowedLimiter(): RateLimiter {
   };
 }
 
-test("returns audio data for valid TTS form payload", async () => {
-  const provider: TtsProvider = {
-    id: "fake-provider",
-    async synthesize() {
-      return new TextEncoder().encode("audio").buffer;
+function createPublicStatus(
+  overrides?: Partial<PublicProviderStatus["tts"]>,
+): PublicProviderStatus {
+  return {
+    tts: {
+      available: true,
+      defaultProvider: "minimax",
+      providers: [
+        { id: "minimax", label: "MiniMax", available: true },
+        {
+          id: "microsoft_unofficial",
+          label: "Microsoft Unofficial",
+          available: true,
+        },
+      ],
+      ...overrides,
+    },
+    stt: {
+      available: true,
+      defaultProvider: "volcengine",
+      providers: [
+        { id: "volcengine", label: "Volcengine", available: true },
+        { id: "vosk", label: "Vosk CN", available: true },
+      ],
+    },
+    summary: {
+      provider: "openai",
+      available: true,
+      defaultModel: "gpt-5.5",
+      models: [{ id: "gpt-5.5", label: "gpt-5.5", default: true }],
     },
   };
+}
 
+function createProvider(id: TtsProvider["id"], text: string): TtsProvider {
+  return {
+    id,
+    label: id === "minimax" ? "MiniMax" : "Microsoft Unofficial",
+    async synthesize() {
+      return new TextEncoder().encode(text).buffer;
+    },
+  };
+}
+
+test("routes TTS to requested Microsoft provider", async () => {
   const POST = createTtsRouteHandler({
-    provider,
+    providers: {
+      minimax: createProvider("minimax", "not used"),
+      microsoft_unofficial: createProvider("microsoft_unofficial", "microsoft"),
+    },
     limiter: createAllowedLimiter(),
     getClientIp: () => "127.0.0.1",
+    getPublicStatus: async () => createPublicStatus(),
   });
 
   const formData = new FormData();
   formData.set("text", "hello");
   formData.set("voice", "zh-CN-XiaoxiaoNeural");
-  formData.set("rate", "1.0");
-  formData.set("pitch", "0");
-  formData.set("style", "general");
+  formData.set("provider", "microsoft_unofficial");
 
   const response = await POST(createRequest(formData));
 
   expect(response.status).toBe(200);
-  expect(response.headers.get("content-type")).toBe("audio/mpeg");
-  expect((await response.arrayBuffer()).byteLength).toBeGreaterThan(0);
+  expect(new TextDecoder().decode(await response.arrayBuffer())).toBe("microsoft");
+});
+
+test("uses default MiniMax provider when provider field is missing", async () => {
+  const POST = createTtsRouteHandler({
+    providers: {
+      minimax: createProvider("minimax", "minimax"),
+      microsoft_unofficial: createProvider("microsoft_unofficial", "not used"),
+    },
+    limiter: createAllowedLimiter(),
+    getClientIp: () => "127.0.0.1",
+    getPublicStatus: async () => createPublicStatus(),
+  });
+
+  const formData = new FormData();
+  formData.set("text", "hello");
+  formData.set("voice", "zh-CN-XiaoxiaoNeural");
+
+  const response = await POST(createRequest(formData));
+
+  expect(response.status).toBe(200);
+  expect(new TextDecoder().decode(await response.arrayBuffer())).toBe("minimax");
+});
+
+test("returns validation error for unknown TTS provider", async () => {
+  const POST = createTtsRouteHandler({
+    providers: {
+      minimax: createProvider("minimax", "not used"),
+      microsoft_unofficial: createProvider("microsoft_unofficial", "not used"),
+    },
+    limiter: createAllowedLimiter(),
+    getClientIp: () => "127.0.0.1",
+    getPublicStatus: async () => createPublicStatus(),
+  });
+
+  const formData = new FormData();
+  formData.set("text", "hello");
+  formData.set("voice", "zh-CN-XiaoxiaoNeural");
+  formData.set("provider", "unknown");
+
+  const response = await POST(createRequest(formData));
+  const payload = await response.json();
+
+  expect(response.status).toBe(400);
+  expect(payload.error.code).toBe("VALIDATION_ERROR");
 });
 
 test("returns 429 when rate limit is exceeded", async () => {
-  const provider: TtsProvider = {
-    id: "fake-provider",
-    async synthesize() {
-      return new TextEncoder().encode("audio").buffer;
-    },
-  };
-
   const limited: RateLimiter = {
     consume() {
       return {
@@ -70,9 +145,12 @@ test("returns 429 when rate limit is exceeded", async () => {
   };
 
   const POST = createTtsRouteHandler({
-    provider,
+    providers: {
+      minimax: createProvider("minimax", "not used"),
+    },
     limiter: limited,
     getClientIp: () => "127.0.0.1",
+    getPublicStatus: async () => createPublicStatus(),
   });
 
   const formData = new FormData();

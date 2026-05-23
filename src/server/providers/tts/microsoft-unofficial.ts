@@ -158,6 +158,7 @@ export function createMicrosoftUnofficialTtsProvider(
 
   return {
     id: "microsoft_unofficial",
+    label: "Microsoft Unofficial",
     async synthesize(input) {
       let lastError: unknown;
 

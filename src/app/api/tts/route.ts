@@ -10,23 +10,36 @@ import {
   createRateLimiter,
   type RateLimiter,
 } from "@/server/platform/rate-limit";
+import { createProviderRegistry } from "@/server/providers/provider-registry";
+import { createMiniMaxTtsProvider } from "@/server/providers/tts/minimax";
 import {
   createMicrosoftUnofficialTtsProvider,
 } from "@/server/providers/tts/microsoft-unofficial";
-import type { TtsProvider } from "@/server/providers/types";
+import {
+  isTtsProviderId,
+  type PublicProviderStatus,
+  type TtsProvider,
+  type TtsProviderId,
+} from "@/server/providers/types";
 
 export const runtime = "nodejs";
 
 type TtsRouteDeps = {
-  provider?: TtsProvider;
+  providers?: Partial<Record<TtsProviderId, TtsProvider>>;
   limiter?: RateLimiter;
   getClientIp?: (request: Request) => string;
+  getPublicStatus?: () => Promise<PublicProviderStatus>;
 };
 
 const defaultLimiter = createRateLimiter({
   max: 20,
   windowMs: 60_000,
 });
+
+const defaultProviders: Partial<Record<TtsProviderId, TtsProvider>> = {
+  minimax: createMiniMaxTtsProvider(),
+  microsoft_unofficial: createMicrosoftUnofficialTtsProvider(),
+};
 
 function defaultGetClientIp(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for");
@@ -48,6 +61,11 @@ function defaultGetClientIp(request: Request) {
 function readStringField(formData: FormData, key: string, fallback = "") {
   const value = formData.get(key);
   return typeof value === "string" ? value : fallback;
+}
+
+async function defaultGetPublicStatus() {
+  const registry = createProviderRegistry();
+  return await registry.getPublicStatus();
 }
 
 async function resolveText(formData: FormData) {
@@ -89,10 +107,33 @@ function toErrorResponse(error: unknown) {
   );
 }
 
+function resolveProviderId(
+  requestedProvider: string,
+  status: PublicProviderStatus["tts"],
+): TtsProviderId {
+  if (!requestedProvider) {
+    return status.defaultProvider;
+  }
+
+  if (!isTtsProviderId(requestedProvider)) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      `VALIDATION_ERROR: unsupported TTS provider \"${requestedProvider}\"`,
+      { status: 400 },
+    );
+  }
+
+  return requestedProvider;
+}
+
 export function createTtsRouteHandler(deps: TtsRouteDeps = {}) {
-  const provider = deps.provider ?? createMicrosoftUnofficialTtsProvider();
+  const providers = {
+    ...defaultProviders,
+    ...deps.providers,
+  };
   const limiter = deps.limiter ?? defaultLimiter;
   const getClientIp = deps.getClientIp ?? defaultGetClientIp;
+  const getPublicStatus = deps.getPublicStatus ?? defaultGetPublicStatus;
 
   return async function POST(request: Request) {
     try {
@@ -108,6 +149,48 @@ export function createTtsRouteHandler(deps: TtsRouteDeps = {}) {
       }
 
       const formData = await request.formData();
+      const publicStatus = await getPublicStatus();
+      if (!publicStatus.tts.available) {
+        throw new AppError(
+          "PROVIDER_UNAVAILABLE",
+          "PROVIDER_UNAVAILABLE: tts is temporarily unavailable",
+          { status: 503, details: publicStatus.tts.reason },
+        );
+      }
+
+      const providerId = resolveProviderId(
+        readStringField(formData, "provider").trim().toLowerCase(),
+        publicStatus.tts,
+      );
+      const providerStatus = publicStatus.tts.providers.find(
+        (provider) => provider.id === providerId,
+      );
+
+      if (!providerStatus) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          `VALIDATION_ERROR: unknown TTS provider \"${providerId}\"`,
+          { status: 400 },
+        );
+      }
+
+      if (!providerStatus.available) {
+        throw new AppError(
+          "PROVIDER_UNAVAILABLE",
+          `PROVIDER_UNAVAILABLE: ${providerStatus.label} is temporarily unavailable`,
+          { status: 503, details: providerStatus.reason },
+        );
+      }
+
+      const provider = providers[providerId];
+      if (!provider) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          `VALIDATION_ERROR: TTS provider \"${providerId}\" is not registered`,
+          { status: 400 },
+        );
+      }
+
       const text = await resolveText(formData);
       const voice = readStringField(formData, "voice", "zh-CN-XiaoxiaoNeural");
       const rate = readStringField(formData, "rate", "1.0");
