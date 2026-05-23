@@ -13,7 +13,6 @@ env:
   STT_PROVIDER: ${{ vars.STT_PROVIDER || 'volcengine' }}
   SUMMARY_PROVIDER: ${{ vars.SUMMARY_PROVIDER || 'openai' }}
   ENABLE_STT: ${{ vars.ENABLE_STT || 'true' }}
-  ENABLE_PUBLIC_STT: ${{ vars.ENABLE_PUBLIC_STT || 'true' }}
   ENABLE_STT_VOLCENGINE: ${{ vars.ENABLE_STT_VOLCENGINE || 'true' }}
   ENABLE_STT_VOSK: ${{ vars.ENABLE_STT_VOSK || 'true' }}
   ENABLE_TTS_MINIMAX: ${{ vars.ENABLE_TTS_MINIMAX || 'true' }}
@@ -60,7 +59,6 @@ jobs:
           echo "STT_PROVIDER=${{ env.STT_PROVIDER }}" >> .env
           echo "SUMMARY_PROVIDER=${{ env.SUMMARY_PROVIDER }}" >> .env
           echo "ENABLE_STT=${{ env.ENABLE_STT }}" >> .env
-          echo "ENABLE_PUBLIC_STT=${{ env.ENABLE_PUBLIC_STT }}" >> .env
           echo "ENABLE_STT_VOLCENGINE=${{ env.ENABLE_STT_VOLCENGINE }}" >> .env
           echo "ENABLE_STT_VOSK=${{ env.ENABLE_STT_VOSK }}" >> .env
           echo "ENABLE_TTS_MINIMAX=${{ env.ENABLE_TTS_MINIMAX }}" >> .env

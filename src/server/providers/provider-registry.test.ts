@@ -37,7 +37,6 @@ test("exposes MVP provider options and defaults", async () => {
 test("does not expose SiliconFlow", async () => {
   const registry = createProviderRegistry({
     ENABLE_STT: "true",
-    ENABLE_PUBLIC_STT: "true",
   });
 
   const status = await registry.getPublicStatus();
@@ -45,6 +44,25 @@ test("does not expose SiliconFlow", async () => {
   expect(status.stt.providers.map((provider) => provider.id)).toEqual([
     "volcengine",
     "vosk",
+  ]);
+});
+
+test("ignores removed public STT flag", async () => {
+  const registry = createProviderRegistry({
+    ENABLE_STT: "true",
+    ENABLE_PUBLIC_STT: "false",
+    VOLCENGINE_ACCESS_KEY_ID: "ak",
+    VOLCENGINE_SECRET_ACCESS_KEY: "sk",
+    VOLCENGINE_STT_APP_ID: "app",
+    VOSK_WS_URL: "ws://vosk-cn:2700",
+  });
+
+  const status = await registry.getPublicStatus();
+
+  expect(status.stt.available).toBe(true);
+  expect(status.stt.providers).toEqual([
+    { id: "volcengine", label: "Volcengine", available: true },
+    { id: "vosk", label: "Vosk CN", available: true },
   ]);
 });
 

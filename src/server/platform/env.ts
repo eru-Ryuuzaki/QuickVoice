@@ -10,7 +10,6 @@ export type AppConfig = {
   sttProvider: SttProviderId;
   summaryProvider: "openai";
   enableStt: boolean;
-  enablePublicStt: boolean;
   enableSttVolcengine: boolean;
   enableSttVosk: boolean;
   enableTtsMinimax: boolean;
@@ -37,7 +36,6 @@ type ConfigInput = {
   STT_PROVIDER?: string;
   SUMMARY_PROVIDER?: string;
   ENABLE_STT?: string;
-  ENABLE_PUBLIC_STT?: string;
   ENABLE_STT_VOLCENGINE?: string;
   ENABLE_STT_VOSK?: string;
   ENABLE_TTS_MINIMAX?: string;
@@ -119,7 +117,6 @@ export function loadConfig(input?: ConfigInput): AppConfig {
     sttProvider: parseSttProvider(source.STT_PROVIDER),
     summaryProvider: "openai",
     enableStt: parseBoolean(source.ENABLE_STT, true),
-    enablePublicStt: parseBoolean(source.ENABLE_PUBLIC_STT, true),
     enableSttVolcengine: parseBoolean(source.ENABLE_STT_VOLCENGINE, true),
     enableSttVosk: parseBoolean(source.ENABLE_STT_VOSK, true),
     enableTtsMinimax: parseBoolean(source.ENABLE_TTS_MINIMAX, true),

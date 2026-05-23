@@ -4,12 +4,10 @@ import HomePage from "@/app/page";
 
 test("renders the QuickVoice workbench shell", async () => {
   const previousEnableStt = process.env.ENABLE_STT;
-  const previousEnablePublicStt = process.env.ENABLE_PUBLIC_STT;
   const previousEnableSttVolcengine = process.env.ENABLE_STT_VOLCENGINE;
   const previousEnableSttVosk = process.env.ENABLE_STT_VOSK;
 
-  process.env.ENABLE_STT = "true";
-  process.env.ENABLE_PUBLIC_STT = "false";
+  process.env.ENABLE_STT = "false";
   process.env.ENABLE_STT_VOLCENGINE = "true";
   process.env.ENABLE_STT_VOSK = "true";
   vi.stubGlobal(
@@ -39,7 +37,6 @@ test("renders the QuickVoice workbench shell", async () => {
     });
   } finally {
     process.env.ENABLE_STT = previousEnableStt;
-    process.env.ENABLE_PUBLIC_STT = previousEnablePublicStt;
     process.env.ENABLE_STT_VOLCENGINE = previousEnableSttVolcengine;
     process.env.ENABLE_STT_VOSK = previousEnableSttVosk;
   }

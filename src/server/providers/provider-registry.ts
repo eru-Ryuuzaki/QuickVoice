@@ -16,7 +16,6 @@ type RegistryConfigInput = Partial<{
   TTS_PROVIDER: string;
   STT_PROVIDER: string;
   ENABLE_STT: string;
-  ENABLE_PUBLIC_STT: string;
   ENABLE_STT_VOLCENGINE: string;
   ENABLE_STT_VOSK: string;
   ENABLE_TTS_MINIMAX: string;
@@ -66,7 +65,7 @@ export function createProviderRegistry(overrides?: RegistryConfigInput) {
 
   function buildSttProviderStatus(id: SttProviderId): PublicSttProviderStatus {
     const label = STT_PROVIDER_LABELS[id];
-    if (!config.enableStt || !config.enablePublicStt) {
+    if (!config.enableStt) {
       return disabled(id, label);
     }
 

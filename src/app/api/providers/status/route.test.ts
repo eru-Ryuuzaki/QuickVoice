@@ -3,7 +3,6 @@ import { GET } from "@/app/api/providers/status/route";
 test("returns provider status for public UI", async () => {
   const previousEnv = {
     ENABLE_STT: process.env.ENABLE_STT,
-    ENABLE_PUBLIC_STT: process.env.ENABLE_PUBLIC_STT,
     ENABLE_STT_VOLCENGINE: process.env.ENABLE_STT_VOLCENGINE,
     ENABLE_STT_VOSK: process.env.ENABLE_STT_VOSK,
     ENABLE_TTS_MINIMAX: process.env.ENABLE_TTS_MINIMAX,
@@ -18,7 +17,6 @@ test("returns provider status for public UI", async () => {
   };
 
   process.env.ENABLE_STT = "true";
-  process.env.ENABLE_PUBLIC_STT = "true";
   process.env.ENABLE_STT_VOLCENGINE = "true";
   process.env.ENABLE_STT_VOSK = "false";
   process.env.ENABLE_TTS_MINIMAX = "true";
