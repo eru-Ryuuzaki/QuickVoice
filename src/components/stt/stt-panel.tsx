@@ -11,7 +11,6 @@ import type {
 type SttPanelProps = {
   sttStatus: PublicProviderStatus["stt"];
   onResultChange: (result: SttResultState) => void;
-  onSendToTts: () => void;
 };
 
 const DEFAULT_STT_RESULT: SttResultState = {
@@ -24,7 +23,6 @@ const DEFAULT_STT_RESULT: SttResultState = {
 export function SttPanel({
   sttStatus,
   onResultChange,
-  onSendToTts,
 }: SttPanelProps) {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -180,13 +178,6 @@ export function SttPanel({
         {isSubmitting ? "Transcribing..." : "Start Transcription"}
       </button>
 
-      <button
-        className="rounded border border-[var(--line)] px-3 py-1 text-xs tracking-[0.08em] text-[var(--muted)] transition-all duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px hover:border-[var(--accent)]/65"
-        onClick={onSendToTts}
-        type="button"
-      >
-        Switch To TTS
-      </button>
     </form>
   );
 }

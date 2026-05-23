@@ -71,9 +71,6 @@ export function Workbench({ status }: WorkbenchProps) {
           ) : (
             <SttPanel
               onResultChange={setSttResult}
-              onSendToTts={() => {
-                setMode("tts");
-              }}
               sttStatus={status.stt}
             />
           )}

@@ -25,7 +25,6 @@ test("keeps STT panel visible when all providers are unavailable", () => {
         ],
       }}
       onResultChange={() => {}}
-      onSendToTts={() => {}}
     />,
   );
 
@@ -35,6 +34,9 @@ test("keeps STT panel visible when all providers are unavailable", () => {
   expect(
     screen.getByRole("button", { name: "Start Transcription" }),
   ).toBeDisabled();
+  expect(
+    screen.queryByRole("button", { name: "Switch To TTS" }),
+  ).not.toBeInTheDocument();
 });
 
 test("renders a provider selector with unavailable options disabled", () => {
@@ -58,7 +60,6 @@ test("renders a provider selector with unavailable options disabled", () => {
         ],
       }}
       onResultChange={() => {}}
-      onSendToTts={() => {}}
     />,
   );
 
