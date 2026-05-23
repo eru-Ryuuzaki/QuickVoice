@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ModeSwitch } from "@/components/mode-switch";
+import { SummaryPanel } from "@/components/stt/summary-panel";
 import { SttPanel } from "@/components/stt/stt-panel";
 import {
   TranscriptionResult,
@@ -62,7 +63,11 @@ export function Workbench({ status }: WorkbenchProps) {
       <section className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_2px_1fr]">
         <div className="border border-[var(--line)] bg-[var(--surface)] p-4">
           {mode === "tts" ? (
-            <TtsForm onResultChange={setTtsResult} seedText={ttsSeedText} />
+            <TtsForm
+              onResultChange={setTtsResult}
+              seedText={ttsSeedText}
+              ttsStatus={status.tts}
+            />
           ) : (
             <SttPanel
               onResultChange={setSttResult}
@@ -100,20 +105,28 @@ export function Workbench({ status }: WorkbenchProps) {
           {mode === "tts" ? (
             <AudioResult result={ttsResult} />
           ) : (
-            <TranscriptionResult
-              onSendToTts={() => {
-                setTtsSeedText(sttResult.text);
-                setMode("tts");
-              }}
-              onTextChange={(nextText) => {
-                setSttResult((previous) => ({
-                  ...previous,
-                  text: nextText,
-                }));
-              }}
-              result={sttResult}
-              sttAvailable={status.stt.available}
-            />
+            <div className="space-y-4">
+              <TranscriptionResult
+                onSendToTts={() => {
+                  setTtsSeedText(sttResult.text);
+                  setMode("tts");
+                }}
+                onTextChange={(nextText) => {
+                  setSttResult((previous) => ({
+                    ...previous,
+                    text: nextText,
+                  }));
+                }}
+                result={sttResult}
+                sttAvailable={status.stt.available}
+              />
+              {sttResult.text ? (
+                <SummaryPanel
+                  summaryStatus={status.summary}
+                  transcript={sttResult.text}
+                />
+              ) : null}
+            </div>
           )}
         </div>
       </section>

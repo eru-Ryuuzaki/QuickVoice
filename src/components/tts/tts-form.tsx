@@ -5,9 +5,14 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type { VoiceGroup } from "@/server/tts/voices";
 
 import type { TtsResultState } from "@/components/tts/audio-result";
+import type {
+  PublicProviderStatus,
+  TtsProviderId,
+} from "@/server/providers/types";
 
 type TtsFormProps = {
   seedText: string;
+  ttsStatus: PublicProviderStatus["tts"];
   onResultChange: (result: TtsResultState) => void;
 };
 
@@ -32,7 +37,11 @@ const FALLBACK_GROUPS: VoiceGroup[] = [
 
 type VoiceStatus = "loading" | "loaded" | "error";
 
-export function TtsForm({ seedText, onResultChange }: TtsFormProps) {
+export function TtsForm({
+  seedText,
+  ttsStatus,
+  onResultChange,
+}: TtsFormProps) {
   const [inputMode, setInputMode] = useState<"text" | "file">("text");
   const [text, setText] = useState(seedText);
   const [file, setFile] = useState<File | null>(null);
@@ -44,6 +53,28 @@ export function TtsForm({ seedText, onResultChange }: TtsFormProps) {
   const [style, setStyle] = useState("general");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const currentAudioUrl = useRef<string | null>(null);
+
+  const resolvedProvider = useMemo(() => {
+    return (
+      ttsStatus.providers.find(
+        (provider) =>
+          provider.id === ttsStatus.defaultProvider && provider.available,
+      )?.id ??
+      ttsStatus.providers.find((provider) => provider.available)?.id ??
+      ttsStatus.defaultProvider
+    );
+  }, [ttsStatus.defaultProvider, ttsStatus.providers]);
+
+  const [providerId, setProviderId] =
+    useState<TtsProviderId>(resolvedProvider);
+
+  useEffect(() => {
+    setProviderId(resolvedProvider);
+  }, [resolvedProvider]);
+
+  const selectedProvider =
+    ttsStatus.providers.find((provider) => provider.id === providerId) ??
+    ttsStatus.providers[0];
 
   const voiceOptions = useMemo(() => {
     return voiceGroups.flatMap((group) => {
@@ -126,6 +157,7 @@ export function TtsForm({ seedText, onResultChange }: TtsFormProps) {
     formData.set("rate", rate);
     formData.set("pitch", pitch);
     formData.set("style", style);
+    formData.set("provider", providerId);
 
     setIsSubmitting(true);
     onResultChange({
@@ -239,6 +271,32 @@ export function TtsForm({ seedText, onResultChange }: TtsFormProps) {
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <label className="block">
           <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+            TTS Provider
+          </span>
+          <select
+            className="w-full rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] outline-none focus-visible:border-[var(--accent)]"
+            disabled={!ttsStatus.available || isSubmitting}
+            onChange={(event) =>
+              setProviderId(event.target.value as TtsProviderId)
+            }
+            value={providerId}
+          >
+            {ttsStatus.providers.map((provider) => (
+              <option
+                disabled={!provider.available}
+                key={provider.id}
+                value={provider.id}
+              >
+                {provider.label}
+                {provider.id === ttsStatus.defaultProvider ? " (Default)" : ""}
+                {provider.available ? "" : " (Unavailable)"}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
             Voice
           </span>
           <select
@@ -305,7 +363,12 @@ export function TtsForm({ seedText, onResultChange }: TtsFormProps) {
 
       <button
         className="rounded border border-[var(--accent)] bg-[var(--accent)] px-4 py-2 text-xs tracking-[0.08em] text-[#121212] transition-transform duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
-        disabled={isSubmitting || voiceStatus === "loading"}
+        disabled={
+          isSubmitting ||
+          voiceStatus === "loading" ||
+          !ttsStatus.available ||
+          !selectedProvider?.available
+        }
         type="submit"
       >
         {isSubmitting ? "Generating..." : "Generate Audio"}

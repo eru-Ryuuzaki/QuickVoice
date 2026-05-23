@@ -9,13 +9,18 @@ function formatState(available: boolean) {
 }
 
 export function SystemStatus({ status }: SystemStatusProps) {
-  const defaultProviderLabel = status.stt.defaultProvider.toUpperCase();
+  const defaultSttProviderLabel = status.stt.defaultProvider.toUpperCase();
+  const defaultTtsProviderLabel = status.tts.defaultProvider.toUpperCase();
+  const defaultSummaryModelLabel = status.summary.defaultModel.toUpperCase();
 
   return (
     <div className="flex flex-wrap gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--muted)]">
       <span>TTS {formatState(status.tts.available)}</span>
       <span>STT {formatState(status.stt.available)}</span>
-      <span>DEFAULT {defaultProviderLabel}</span>
+      <span>SUMMARY {formatState(status.summary.available)}</span>
+      <span>TTS DEFAULT {defaultTtsProviderLabel}</span>
+      <span>STT DEFAULT {defaultSttProviderLabel}</span>
+      <span>SUMMARY DEFAULT {defaultSummaryModelLabel}</span>
       {status.stt.providers.map((provider) => (
         <span key={provider.id}>
           {provider.label.toUpperCase()} {formatState(provider.available)}

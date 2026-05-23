@@ -31,7 +31,7 @@ test("renders the QuickVoice workbench shell", async () => {
       screen.getByRole("button", { name: "Text to Speech" }),
     ).toBeInTheDocument();
     expect(screen.getByText("STT UNAVAILABLE")).toBeInTheDocument();
-    expect(screen.getByText("DEFAULT VOLCENGINE")).toBeInTheDocument();
+    expect(screen.getByText("STT DEFAULT VOLCENGINE")).toBeInTheDocument();
     expect(screen.getByText("VOSK CN UNAVAILABLE")).toBeInTheDocument();
 
     await waitFor(() => {

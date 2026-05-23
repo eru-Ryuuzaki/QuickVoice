@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { TtsForm } from "@/components/tts/tts-form";
+import type { PublicProviderStatus } from "@/server/providers/types";
 
 const voicesPayload = {
   groups: [
@@ -15,6 +16,19 @@ const voicesPayload = {
           locale: "zh-CN",
         },
       ],
+    },
+  ],
+};
+
+const ttsStatus: PublicProviderStatus["tts"] = {
+  available: true,
+  defaultProvider: "minimax",
+  providers: [
+    { id: "minimax", label: "MiniMax", available: true },
+    {
+      id: "microsoft_unofficial",
+      label: "Microsoft Unofficial",
+      available: true,
     },
   ],
 };
@@ -47,7 +61,13 @@ test("submits TTS input and reports playable audio result", async () => {
   });
 
   const onResultChange = vi.fn();
-  render(<TtsForm onResultChange={onResultChange} seedText="" />);
+  render(
+    <TtsForm
+      onResultChange={onResultChange}
+      seedText=""
+      ttsStatus={ttsStatus}
+    />,
+  );
 
   await waitFor(() => {
     expect(screen.getByLabelText("Input Text")).toBeInTheDocument();
@@ -64,4 +84,7 @@ test("submits TTS input and reports playable audio result", async () => {
       }),
     );
   });
+
+  const [, requestOptions] = fetchMock.mock.calls[1] ?? [];
+  expect((requestOptions?.body as FormData).get("provider")).toBe("minimax");
 });

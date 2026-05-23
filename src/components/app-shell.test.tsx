@@ -57,7 +57,8 @@ test("renders top rail, activity rail, and two-pane work area", async () => {
   expect(screen.getByText("QuickVoice")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Text to Speech" })).toBeInTheDocument();
   expect(screen.getByText("Audio Output")).toBeInTheDocument();
-  expect(screen.getByText("DEFAULT VOLCENGINE")).toBeInTheDocument();
+  expect(screen.getByText("STT DEFAULT VOLCENGINE")).toBeInTheDocument();
+  expect(screen.getByText("SUMMARY DEFAULT GPT-5.5")).toBeInTheDocument();
   expect(screen.getByTestId("activity-rail")).toBeInTheDocument();
 
   await waitFor(() => {
