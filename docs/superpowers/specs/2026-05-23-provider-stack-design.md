@@ -10,8 +10,8 @@ Design intent: Replace automatic multi-provider fallback with explicit provider 
 
 QuickVoice should move from a many-provider fallback model to a focused three-capability stack:
 
-- STT: Volcengine Doubao big-model recording-file recognition
-- TTS: MiniMax Speech, defaulting to `speech-2.8-turbo`
+- STT: Volcengine Doubao big-model recording-file recognition by default, with Vosk CN retained as an explicit selectable local provider
+- TTS: MiniMax Speech by default, with the current Microsoft unofficial TTS retained as an explicit selectable provider
 - Summary: OpenAI Responses API, defaulting to `gpt-5.5`
 
 The first implementation should not include automatic fallback between vendors. Each capability has a configured default provider. STT/TTS should allow explicit user selection among enabled providers, and Summary should allow explicit model selection among enabled OpenAI models. If a selected provider or model fails, the app should show that failure instead of silently switching.
@@ -29,7 +29,9 @@ The first implementation should not include automatic fallback between vendors. 
 - Preserve the existing STT provider selector pattern.
 - Add an equivalent TTS provider selector if more than one TTS provider is enabled.
 - Add a Summary model selector backed by a server-side OpenAI model allowlist.
-- Keep existing legacy providers in code only if doing so is low-risk, and expose them only when explicitly enabled.
+- Remove SiliconFlow from the supported STT provider set.
+- Retain Vosk CN as a selectable STT provider.
+- Retain the current Microsoft unofficial TTS provider as a selectable non-default TTS provider.
 
 ### 2.2 Out of scope
 
@@ -38,6 +40,7 @@ The first implementation should not include automatic fallback between vendors. 
 - User-facing provider comparison UI.
 - Summary provider selection beyond OpenAI.
 - Free-form browser-supplied OpenAI model IDs.
+- SiliconFlow STT support in the new provider stack.
 - Voice cloning for anonymous public users.
 - Real-time STT streaming.
 - Background job queues.
@@ -49,20 +52,30 @@ The first implementation should not include automatic fallback between vendors. 
 
 The default STT provider should be Volcengine Doubao big-model recording-file recognition.
 
+Supported STT providers in the new stack:
+
+- `volcengine`, default
+- `vosk`, selectable local provider
+
 Rationale:
 
 - Strong fit for Chinese and Chinese-English mixed audio.
 - Better domestic network and cloud-service alignment than overseas-only providers.
-- More suitable for long uploaded recordings than the current local Vosk path.
-- A clearer production provider than the current public-token SiliconFlow path.
+- More suitable for long uploaded recordings than the local Vosk path.
+- A clearer production provider than the current public-token SiliconFlow path, which should be removed from the supported provider set.
 
 The first version should use the uploaded-file transcription flow rather than real-time recognition. The current QuickVoice UI already follows an upload-and-submit model, so this avoids unnecessary frontend and WebSocket complexity.
 
-The existing STT provider selector should remain. Volcengine should become the default option, while other enabled STT providers can remain selectable for manual testing or operator-controlled exposure. This is explicit selection, not fallback.
+The existing STT provider selector should remain. Volcengine should become the default option, and Vosk should remain selectable when enabled. SiliconFlow should not appear in the selector and should not be accepted as a supported STT provider after the migration. This is explicit selection, not fallback.
 
 ### 3.2 TTS: MiniMax Speech
 
 The default TTS provider should be MiniMax Speech.
+
+Supported TTS providers in the new stack:
+
+- `minimax`, default
+- `microsoft_unofficial`, selectable current provider
 
 Recommended default:
 
@@ -85,7 +98,7 @@ Rationale:
 
 Voice cloning should not be exposed in the first public version. It adds consent, abuse, moderation, and cost concerns that do not belong in the initial provider migration.
 
-TTS should gain provider selection when multiple TTS providers are enabled. MiniMax should be the default option, and the current Microsoft unofficial provider may remain selectable only when explicitly enabled. A failed MiniMax request should not automatically retry through Microsoft or OpenAI.
+TTS should gain provider selection when multiple TTS providers are enabled. MiniMax should be the default option, and the current Microsoft unofficial provider should remain selectable as the existing non-default provider. A failed MiniMax request should not automatically retry through Microsoft or OpenAI.
 
 ### 3.3 Summary: OpenAI
 
@@ -200,11 +213,18 @@ STT_PROVIDER=volcengine
 TTS_PROVIDER=minimax
 SUMMARY_PROVIDER=openai
 
+ENABLE_STT_VOLCENGINE=true
+ENABLE_STT_VOSK=true
+ENABLE_TTS_MINIMAX=true
+ENABLE_TTS_MICROSOFT_UNOFFICIAL=true
+
 VOLCENGINE_ACCESS_KEY_ID=
 VOLCENGINE_SECRET_ACCESS_KEY=
 VOLCENGINE_STT_APP_ID=
 VOLCENGINE_STT_RESOURCE_ID=
 VOLCENGINE_STT_ENDPOINT=
+
+VOSK_WS_URL=ws://vosk-cn:2700
 
 MINIMAX_API_KEY=
 MINIMAX_GROUP_ID=
@@ -224,6 +244,7 @@ Provider-specific names may be adjusted during implementation to match official 
 - one default summary model
 - optional explicit allowlist for additional selectable summary models
 - optional explicit enable flags for additional selectable STT/TTS providers
+- no SiliconFlow STT configuration in the new stack
 
 ## 8. Provider And Model Selection UI
 
@@ -264,7 +285,10 @@ Summary should have its own rate limit because it may be called repeatedly again
 Add or update tests for:
 
 - Volcengine STT provider request construction and normalized errors.
+- Vosk remains selectable and still uses the chosen provider path.
+- SiliconFlow is rejected or absent after migration.
 - MiniMax TTS provider request construction and normalized errors.
+- Microsoft unofficial TTS remains selectable as a non-default provider.
 - OpenAI summary use case with structured output validation.
 - `POST /api/summary` validation and error mapping.
 - Provider status when one of STT, TTS, or summary is unconfigured.
@@ -282,12 +306,13 @@ The provider stack migration is complete when:
 
 - Public STT uses Volcengine by default.
 - Public TTS uses MiniMax by default.
-- STT provider selection remains available and uses the selected provider.
+- STT provider selection remains available and exposes Volcengine and Vosk, not SiliconFlow.
 - TTS provider selection is available when more than one public TTS provider is enabled.
+- Current Microsoft unofficial TTS remains selectable but is not the default.
 - Summary model selection is available and uses the selected allowed OpenAI model.
 - A transcript can be summarized through OpenAI.
 - No automatic fallback is performed.
-- Existing legacy provider options are exposed only when explicitly enabled.
+- SiliconFlow STT is removed from the public provider set.
 - Provider status includes summary availability.
 - All paid-provider calls are guarded by validation and rate limits.
 
@@ -296,3 +321,5 @@ The provider stack migration is complete when:
 This design updates the provider strategy from the original QuickVoice v1 spec. The original Studio Console UI direction, deployment model, error model, and route normalization principles still apply.
 
 Implementation should preserve the existing provider adapter pattern instead of wiring vendor calls directly into route handlers.
+
+The provider type registry should be updated so STT provider IDs are `volcengine` and `vosk`. TTS provider IDs should include `minimax` and `microsoft_unofficial`.
