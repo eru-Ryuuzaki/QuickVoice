@@ -105,6 +105,52 @@ test("uses configured OpenAI summary endpoint from env", async () => {
   }
 });
 
+test("parses Responses API output array content", async () => {
+  const fetchImpl = vi.fn(async () =>
+    new Response(
+      JSON.stringify({
+        output: [
+          { type: "reasoning" },
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: JSON.stringify({
+                  title: "Responses",
+                  summary: "Parsed nested output",
+                  keyPoints: ["Nested content"],
+                  actionItems: [],
+                  keywords: ["responses"],
+                  cleanTranscript: "clean",
+                }),
+              },
+            ],
+          },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    ),
+  ) as typeof fetch;
+
+  const provider = createOpenAiSummaryProvider({
+    apiKey: "key",
+    endpoint: "https://example.test/responses",
+    fetchImpl,
+  });
+
+  const result = await provider.summarize({
+    transcript: "raw text",
+    model: "gpt-5.5",
+  });
+
+  expect(result.title).toBe("Responses");
+  expect(result.keyPoints).toEqual(["Nested content"]);
+});
+
 test("maps OpenAI failures", async () => {
   const fetchImpl = vi.fn(async () => new Response("bad", { status: 503 })) as typeof fetch;
   const provider = createOpenAiSummaryProvider({

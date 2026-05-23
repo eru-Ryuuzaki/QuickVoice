@@ -15,7 +15,6 @@ import {
 type RegistryConfigInput = Partial<{
   TTS_PROVIDER: string;
   STT_PROVIDER: string;
-  ENABLE_STT: string;
   ENABLE_STT_VOLCENGINE: string;
   ENABLE_STT_VOSK: string;
   ENABLE_TTS_MINIMAX: string;
@@ -24,13 +23,20 @@ type RegistryConfigInput = Partial<{
   VOLCENGINE_SECRET_ACCESS_KEY: string;
   VOLCENGINE_STT_APP_ID: string;
   VOLCENGINE_STT_MODEL: string;
+  VOLCENGINE_STT_MODEL_OPTIONS: string;
   VOLCENGINE_STT_RESOURCE_ID: string;
   VOSK_WS_URL: string;
   MINIMAX_API_KEY: string;
-  MINIMAX_GROUP_ID: string;
   MINIMAX_TTS_MODEL: string;
+  MINIMAX_TTS_MODEL_OPTIONS: string;
+  MINIMAX_TTS_ENDPOINT: string;
+  MINIMAX_TTS_VOICE_ID: string;
+  MINIMAX_TTS_VOICE_OPTIONS: string;
+  MICROSOFT_TTS_VOICE_ID: string;
+  MICROSOFT_TTS_VOICE_OPTIONS: string;
   OPENAI_API_KEY: string;
   OPENAI_SUMMARY_MODEL: string;
+  OPENAI_SUMMARY_MODEL_OPTIONS: string;
 }>;
 
 function disabled<TId extends string>(
@@ -65,9 +71,6 @@ export function createProviderRegistry(overrides?: RegistryConfigInput) {
 
   function buildSttProviderStatus(id: SttProviderId): PublicSttProviderStatus {
     const label = STT_PROVIDER_LABELS[id];
-    if (!config.enableStt) {
-      return disabled(id, label);
-    }
 
     if (id === "volcengine") {
       if (!config.enableSttVolcengine) {
@@ -104,7 +107,7 @@ export function createProviderRegistry(overrides?: RegistryConfigInput) {
         return disabled(id, label);
       }
 
-      if (!config.minimaxApiKey || !config.minimaxGroupId) {
+      if (!config.minimaxApiKey) {
         return unconfigured(id, label);
       }
     }
@@ -126,13 +129,32 @@ export function createProviderRegistry(overrides?: RegistryConfigInput) {
     const sttAvailable = sttProviders.some((provider) => provider.available);
     const ttsAvailable = ttsProviders.some((provider) => provider.available);
     const summaryAvailable = Boolean(config.openaiApiKey);
+    const providerSettings = {
+      minimax: {
+        defaultModel: config.minimaxTtsModel,
+        modelOptions: config.minimaxTtsModelOptions,
+        defaultVoice: config.minimaxTtsVoiceId,
+        voiceOptions: config.minimaxTtsVoiceOptions,
+      },
+      microsoft_unofficial: {
+        defaultModel: config.microsoftTtsModel,
+        modelOptions: config.microsoftTtsModelOptions,
+        defaultVoice: config.microsoftTtsVoiceId,
+        voiceOptions: config.microsoftTtsVoiceOptions,
+      },
+    };
+    const defaultTtsSettings = providerSettings[config.ttsProvider];
 
     return {
       tts: {
         available: ttsAvailable,
         reason: aggregateReason(ttsProviders),
         defaultProvider: config.ttsProvider,
-        defaultModel: config.minimaxTtsModel,
+        defaultModel: defaultTtsSettings.defaultModel,
+        modelOptions: defaultTtsSettings.modelOptions,
+        defaultVoice: defaultTtsSettings.defaultVoice,
+        voiceOptions: defaultTtsSettings.voiceOptions,
+        providerSettings,
         providers: ttsProviders,
       },
       stt: {
@@ -140,6 +162,7 @@ export function createProviderRegistry(overrides?: RegistryConfigInput) {
         reason: aggregateReason(sttProviders),
         defaultProvider: config.sttProvider,
         defaultModel: config.volcengineSttModel,
+        modelOptions: config.volcengineSttModelOptions,
         providers: sttProviders,
       },
       summary: {
@@ -147,6 +170,7 @@ export function createProviderRegistry(overrides?: RegistryConfigInput) {
         available: summaryAvailable,
         reason: summaryAvailable ? undefined : "unconfigured",
         defaultModel: config.openaiSummaryModel,
+        modelOptions: config.openaiSummaryModelOptions,
       },
     };
   }

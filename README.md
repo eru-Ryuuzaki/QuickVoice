@@ -4,7 +4,7 @@ QuickVoice is a public speech workbench with:
 
 - `POST /api/tts` with selectable TTS providers: MiniMax and Microsoft unofficial
 - `POST /api/stt` with selectable STT providers: Volcengine and Vosk CN
-- `POST /api/summary` using OpenAI with a manual model override
+- `POST /api/summary` using OpenAI with env-configured model selection
 - Studio-style single-page UI with TTS/STT mode switch, provider selectors, model inputs, and summary controls
 - Docker Compose deployment that runs QuickVoice beside a Vosk sidecar service
 
@@ -45,31 +45,35 @@ Copy `.env.example` to `.env` and set values as needed:
 PORT=4003
 APP_URL=https://quickvoice.ryuuzaki.top
 
-TTS_PROVIDER=minimax
 STT_PROVIDER=volcengine
-SUMMARY_PROVIDER=openai
+TTS_PROVIDER=minimax
 
-ENABLE_STT=true
-ENABLE_STT_VOSK=true
 ENABLE_STT_VOLCENGINE=true
-ENABLE_TTS_MINIMAX=true
-ENABLE_TTS_MICROSOFT_UNOFFICIAL=true
-
 VOLCENGINE_ACCESS_KEY_ID=
 VOLCENGINE_SECRET_ACCESS_KEY=
 VOLCENGINE_STT_APP_ID=
 VOLCENGINE_STT_MODEL=volc.bigasr.auc_turbo
+VOLCENGINE_STT_MODEL_OPTIONS=volc.bigasr.auc_turbo
 VOLCENGINE_STT_ENDPOINT=https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash
 
+ENABLE_STT_VOSK=true
 VOSK_WS_URL=ws://vosk-cn:2700
 
+ENABLE_TTS_MINIMAX=true
 MINIMAX_API_KEY=
-MINIMAX_GROUP_ID=
 MINIMAX_TTS_MODEL=speech-2.8-turbo
-MINIMAX_TTS_ENDPOINT=https://api.minimax.io/v1/t2a_v2
+MINIMAX_TTS_MODEL_OPTIONS=speech-2.8-turbo,speech-2.8-hd,speech-2.6-turbo,speech-2.6-hd
+MINIMAX_TTS_ENDPOINT=https://api.minimaxi.com/v1/t2a_v2
+MINIMAX_TTS_VOICE_ID=Chinese (Mandarin)_Warm_Girl
+MINIMAX_TTS_VOICE_OPTIONS=Chinese (Mandarin)_Warm_Girl,Chinese (Mandarin)_News_Anchor,English_expressive_narrator
+
+ENABLE_TTS_MICROSOFT_UNOFFICIAL=true
+MICROSOFT_TTS_VOICE_ID=zh-CN-XiaoxiaoNeural
+MICROSOFT_TTS_VOICE_OPTIONS=zh-CN-XiaoxiaoNeural,zh-CN-YunxiNeural
 
 OPENAI_API_KEY=
 OPENAI_SUMMARY_MODEL=gpt-5.5
+OPENAI_SUMMARY_MODEL_OPTIONS=gpt-5.5
 OPENAI_SUMMARY_ENDPOINT=https://api.openai.com/v1/responses
 ```
 
@@ -77,9 +81,11 @@ Notes:
 
 - `STT_PROVIDER` controls the default STT provider.
 - `TTS_PROVIDER` controls the default TTS provider.
-- `VOLCENGINE_STT_MODEL`, `MINIMAX_TTS_MODEL`, and `OPENAI_SUMMARY_MODEL` control server defaults. The browser UI also lets you type and save per-browser model overrides.
+- `VOLCENGINE_STT_MODEL`, `MINIMAX_TTS_MODEL`, and `OPENAI_SUMMARY_MODEL` control server defaults.
+- `VOLCENGINE_STT_MODEL_OPTIONS`, `MINIMAX_TTS_MODEL_OPTIONS`, `MINIMAX_TTS_VOICE_OPTIONS`, `MICROSOFT_TTS_VOICE_OPTIONS`, and `OPENAI_SUMMARY_MODEL_OPTIONS` are comma-separated choices for the UI dropdowns.
+- `MINIMAX_API_KEY` is the MiniMax pay-as-you-go API key used with `Authorization: Bearer`. `MINIMAX_TTS_VOICE_ID` is the optional MiniMax fallback voice when the request voice is blank. `MICROSOFT_TTS_VOICE_ID` controls the UI/API default voice for the Microsoft unofficial provider.
 - `VOLCENGINE_STT_ENDPOINT`, `MINIMAX_TTS_ENDPOINT`, and `OPENAI_SUMMARY_ENDPOINT` can override provider API URLs.
-- SiliconFlow is not part of the active provider stack.
+- Unsupported provider ids fall back to the current defaults: Volcengine for STT and MiniMax for TTS.
 - `VOSK_WS_URL` should point at the internal Vosk websocket service. In production Compose it defaults to `ws://vosk-cn:2700`.
 
 ## Production Deployment

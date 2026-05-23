@@ -41,27 +41,34 @@ export type PublicSttProviderStatus =
 export type PublicTtsProviderStatus =
   PublicSelectableProviderStatus<TtsProviderId>;
 
+export type PublicTtsProviderSettings = {
+  defaultModel: string;
+  modelOptions: string[];
+  defaultVoice: string;
+  voiceOptions: string[];
+};
+
 export type PublicSttStatus = ProviderAvailability & {
   defaultProvider: SttProviderId;
   defaultModel: string;
+  modelOptions: string[];
   providers: PublicSttProviderStatus[];
 };
 
 export type PublicTtsStatus = ProviderAvailability & {
   defaultProvider: TtsProviderId;
   defaultModel: string;
+  modelOptions: string[];
+  defaultVoice: string;
+  voiceOptions: string[];
+  providerSettings: Record<TtsProviderId, PublicTtsProviderSettings>;
   providers: PublicTtsProviderStatus[];
-};
-
-export type PublicSummaryModelStatus = {
-  id: string;
-  label: string;
-  default: boolean;
 };
 
 export type PublicSummaryStatus = ProviderAvailability & {
   provider: "openai";
   defaultModel: string;
+  modelOptions: string[];
 };
 
 export type PublicProviderStatus = {

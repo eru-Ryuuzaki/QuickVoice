@@ -23,3 +23,11 @@ test("falls back to defaults on invalid values", () => {
   expect(result.pitch).toBe("+0Hz");
   expect(result.style).toBe("general");
 });
+
+test("preserves manually entered styles", () => {
+  const result = normalizeTtsParams({
+    style: " Cheerful ",
+  });
+
+  expect(result.style).toBe("cheerful");
+});

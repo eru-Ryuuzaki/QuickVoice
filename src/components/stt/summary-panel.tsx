@@ -85,11 +85,11 @@ export function SummaryPanel({
     <section className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
         <ModelInput
-          defaultModel={summaryStatus.defaultModel}
           disabled={state.loading}
           label="Summary Model"
           onModelChange={setModel}
-          storageKey="quickvoice.summary.model"
+          options={summaryStatus.modelOptions}
+          value={model}
         />
 
         <button

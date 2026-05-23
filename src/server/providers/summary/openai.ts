@@ -10,6 +10,13 @@ type OpenAiSummaryOptions = {
 
 type OpenAiPayload = {
   output_text?: string;
+  output?: Array<{
+    content?: Array<{
+      text?: string;
+      type?: string;
+    }>;
+    type?: string;
+  }>;
 };
 
 function parseStringArray(value: unknown) {
@@ -29,6 +36,22 @@ function parseSummary(text: string, model: string): SummaryResult {
     cleanTranscript: String(parsed.cleanTranscript ?? "").trim(),
     model,
   };
+}
+
+function readOutputText(payload: OpenAiPayload) {
+  if (typeof payload.output_text === "string") {
+    return payload.output_text;
+  }
+
+  for (const output of payload.output ?? []) {
+    for (const content of output.content ?? []) {
+      if (typeof content.text === "string" && content.text.trim()) {
+        return content.text;
+      }
+    }
+  }
+
+  return "";
 }
 
 export function createOpenAiSummaryProvider(
@@ -80,7 +103,8 @@ export function createOpenAiSummaryProvider(
       }
 
       const payload = (await response.json()) as OpenAiPayload;
-      if (!payload.output_text) {
+      const outputText = readOutputText(payload);
+      if (!outputText) {
         throw new AppError(
           "PROCESSING_FAILED",
           "PROCESSING_FAILED: OpenAI summary returned empty output",
@@ -88,7 +112,7 @@ export function createOpenAiSummaryProvider(
         );
       }
 
-      return parseSummary(payload.output_text, input.model);
+      return parseSummary(outputText, input.model);
     },
   };
 }

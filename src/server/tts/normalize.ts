@@ -11,13 +11,6 @@ export type NormalizedTtsParams = {
 };
 
 const DEFAULT_STYLE = "general";
-const SUPPORTED_STYLES = new Set([
-  "general",
-  "assistant",
-  "chat",
-  "customerservice",
-  "newscast",
-]);
 
 function toSignedValue(value: number, suffix: string) {
   const rounded = Math.round(value);
@@ -45,11 +38,7 @@ function normalizePitch(pitch: string | undefined) {
 
 function normalizeStyle(style: string | undefined) {
   const candidate = style?.trim().toLowerCase();
-  if (!candidate || !SUPPORTED_STYLES.has(candidate)) {
-    return DEFAULT_STYLE;
-  }
-
-  return candidate;
+  return candidate || DEFAULT_STYLE;
 }
 
 export function normalizeTtsParams(

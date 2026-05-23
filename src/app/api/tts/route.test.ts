@@ -29,6 +29,24 @@ function createPublicStatus(
     tts: {
       available: true,
       defaultProvider: "minimax",
+      defaultModel: "speech-2.8-turbo",
+      modelOptions: ["speech-2.8-turbo"],
+      defaultVoice: "Chinese (Mandarin)_Warm_Girl",
+      voiceOptions: ["Chinese (Mandarin)_Warm_Girl"],
+      providerSettings: {
+        minimax: {
+          defaultModel: "speech-2.8-turbo",
+          modelOptions: ["speech-2.8-turbo"],
+          defaultVoice: "Chinese (Mandarin)_Warm_Girl",
+          voiceOptions: ["Chinese (Mandarin)_Warm_Girl"],
+        },
+        microsoft_unofficial: {
+          defaultModel: "",
+          modelOptions: [],
+          defaultVoice: "zh-CN-XiaoxiaoNeural",
+          voiceOptions: ["zh-CN-XiaoxiaoNeural", "zh-CN-YunxiNeural"],
+        },
+      },
       providers: [
         { id: "minimax", label: "MiniMax", available: true },
         {
@@ -51,6 +69,7 @@ function createPublicStatus(
       provider: "openai",
       available: true,
       defaultModel: "gpt-5.5",
+      modelOptions: ["gpt-5.5"],
     },
   };
 }
@@ -124,7 +143,20 @@ test("passes manual TTS model to the provider", async () => {
     getClientIp: () => "127.0.0.1",
     getPublicStatus: async () =>
       createPublicStatus({
-        defaultModel: "speech-2.8-turbo",
+        providerSettings: {
+          minimax: {
+            defaultModel: "speech-2.8-turbo",
+            modelOptions: ["speech-2.8-turbo"],
+            defaultVoice: "Chinese (Mandarin)_Warm_Girl",
+            voiceOptions: ["Chinese (Mandarin)_Warm_Girl"],
+          },
+          microsoft_unofficial: {
+            defaultModel: "",
+            modelOptions: [],
+            defaultVoice: "zh-CN-XiaoxiaoNeural",
+            voiceOptions: ["zh-CN-XiaoxiaoNeural"],
+          },
+        },
       }),
   });
 
@@ -139,6 +171,54 @@ test("passes manual TTS model to the provider", async () => {
   expect(synthesize).toHaveBeenCalledWith(
     expect.objectContaining({
       model: "speech-custom",
+    }),
+  );
+});
+
+test("uses configured TTS voice and internal style default when form fields are missing", async () => {
+  const synthesize = vi.fn(async () =>
+    new TextEncoder().encode("microsoft").buffer,
+  );
+  const POST = createTtsRouteHandler({
+    providers: {
+      microsoft_unofficial: {
+        id: "microsoft_unofficial",
+        label: "Microsoft Unofficial",
+        synthesize,
+      },
+    },
+    limiter: createAllowedLimiter(),
+    getClientIp: () => "127.0.0.1",
+    getPublicStatus: async () =>
+      createPublicStatus({
+        defaultProvider: "microsoft_unofficial",
+        providerSettings: {
+          minimax: {
+            defaultModel: "speech-2.8-turbo",
+            modelOptions: ["speech-2.8-turbo"],
+            defaultVoice: "Chinese (Mandarin)_Warm_Girl",
+            voiceOptions: ["Chinese (Mandarin)_Warm_Girl"],
+          },
+          microsoft_unofficial: {
+            defaultModel: "",
+            modelOptions: [],
+            defaultVoice: "zh-CN-YunxiNeural",
+            voiceOptions: ["zh-CN-YunxiNeural"],
+          },
+        },
+      }),
+  });
+
+  const formData = new FormData();
+  formData.set("text", "hello");
+
+  const response = await POST(createRequest(formData));
+
+  expect(response.status).toBe(200);
+  expect(synthesize).toHaveBeenCalledWith(
+    expect.objectContaining({
+      voice: "zh-CN-YunxiNeural",
+      style: "general",
     }),
   );
 });

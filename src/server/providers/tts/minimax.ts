@@ -2,11 +2,10 @@ import { loadConfig } from "@/server/platform/env";
 import { AppError } from "@/server/platform/errors";
 import type { TtsProvider } from "@/server/providers/types";
 
-const DEFAULT_ENDPOINT = "https://api.minimax.io/v1/t2a_v2";
+const DEFAULT_ENDPOINT = "https://api.minimaxi.com/v1/t2a_v2";
 
 type MiniMaxTtsOptions = {
   apiKey?: string;
-  groupId?: string;
   model?: string;
   defaultVoiceId?: string;
   endpoint?: string;
@@ -28,7 +27,6 @@ export function createMiniMaxTtsProvider(
 ): TtsProvider {
   const config = loadConfig();
   const apiKey = options.apiKey ?? config.minimaxApiKey;
-  const groupId = options.groupId ?? config.minimaxGroupId;
   const model = options.model ?? config.minimaxTtsModel;
   const defaultVoiceId = options.defaultVoiceId ?? config.minimaxTtsVoiceId;
   const endpoint = options.endpoint ?? config.minimaxTtsEndpoint ?? DEFAULT_ENDPOINT;
@@ -38,7 +36,7 @@ export function createMiniMaxTtsProvider(
     id: "minimax",
     label: "MiniMax",
     async synthesize(input) {
-      if (!apiKey || !groupId) {
+      if (!apiKey) {
         throw new AppError(
           "PROVIDER_UNAVAILABLE",
           "PROVIDER_UNAVAILABLE: MiniMax TTS is not configured",
@@ -56,7 +54,7 @@ export function createMiniMaxTtsProvider(
       }
 
       const requestModel = input.model?.trim() || model;
-      const response = await fetchImpl(`${endpoint}?GroupId=${groupId}`, {
+      const response = await fetchImpl(endpoint, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -66,6 +64,7 @@ export function createMiniMaxTtsProvider(
           model: requestModel,
           text: input.text,
           stream: false,
+          output_format: "hex",
           voice_setting: {
             voice_id: voiceId,
             speed: parseNumber(input.rate, 1),
@@ -92,14 +91,17 @@ export function createMiniMaxTtsProvider(
 
       const payload = (await response.json()) as MiniMaxPayload;
       if (!payload.data?.audio) {
+        const message = payload.base_resp?.status_msg
+          ? `PROCESSING_FAILED: MiniMax TTS returned empty audio (${payload.base_resp.status_msg})`
+          : "PROCESSING_FAILED: MiniMax TTS returned empty audio";
         throw new AppError(
           "PROCESSING_FAILED",
-          "PROCESSING_FAILED: MiniMax TTS returned empty audio",
+          message,
           { status: 502, details: payload.base_resp?.status_msg },
         );
       }
 
-      const audio = Buffer.from(payload.data.audio, "base64");
+      const audio = Buffer.from(payload.data.audio, "hex");
       return audio.buffer.slice(
         audio.byteOffset,
         audio.byteOffset + audio.byteLength,

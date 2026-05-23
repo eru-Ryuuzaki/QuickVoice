@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { loadConfig } from "@/server/platform/env";
 import { AppError } from "@/server/platform/errors";
 import type { SttProvider } from "@/server/providers/types";
@@ -15,6 +17,14 @@ type VolcenginePayload = {
   result?: { text?: string };
   text?: string;
 };
+
+async function readFileBuffer(file: File) {
+  if (typeof file.arrayBuffer === "function") {
+    return Buffer.from(await file.arrayBuffer());
+  }
+
+  return Buffer.from(await file.text());
+}
 
 function getDefaults() {
   const config = loadConfig();
@@ -50,26 +60,40 @@ export function createVolcengineSttProvider(
         );
       }
 
-      const formData = new FormData();
-      formData.append("file", input.file);
       const requestResourceId = input.model.trim() || resourceId;
+      const audioData = (await readFileBuffer(input.file)).toString("base64");
 
       const response = await fetchImpl(endpoint, {
         method: "POST",
         headers: {
+          "Content-Type": "application/json",
           "X-Api-Access-Key": accessKeyId,
-          "X-Api-Secret-Key": secretAccessKey,
           "X-Api-App-Key": appId,
           "X-Api-Resource-Id": requestResourceId,
+          "X-Api-Request-Id": randomUUID(),
+          "X-Api-Sequence": "-1",
         },
-        body: formData,
+        body: JSON.stringify({
+          user: {
+            uid: appId,
+          },
+          audio: {
+            data: audioData,
+          },
+          request: {
+            model_name: "bigmodel",
+          },
+        }),
       });
 
       if (!response.ok) {
         const body = await response.text();
+        const message = body
+          ? `PROVIDER_UNAVAILABLE: Volcengine STT returned ${response.status} ${body.slice(0, 180)}`
+          : `PROVIDER_UNAVAILABLE: Volcengine STT returned ${response.status}`;
         throw new AppError(
           response.status === 429 ? "RATE_LIMITED" : "PROVIDER_UNAVAILABLE",
-          `PROVIDER_UNAVAILABLE: Volcengine STT returned ${response.status}`,
+          message,
           { status: response.status === 429 ? 429 : 503, details: body },
         );
       }

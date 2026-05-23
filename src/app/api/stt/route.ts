@@ -183,7 +183,7 @@ export function createSttRouteHandler(deps: SttRouteDeps = {}) {
           file,
           model:
             readStringField(formData, "model") ||
-            publicStatus.stt.defaultModel,
+            (providerId === "volcengine" ? publicStatus.stt.defaultModel : ""),
         },
         {
           provider,

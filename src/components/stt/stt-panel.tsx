@@ -29,16 +29,20 @@ export function SttPanel({
   const [model, setModel] = useState(sttStatus.defaultModel);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const availableProviders = useMemo(() => {
+    return sttStatus.providers.filter((provider) => provider.available);
+  }, [sttStatus.providers]);
+
   const resolvedProvider = useMemo(() => {
     return (
-      sttStatus.providers.find(
+      availableProviders.find(
         (provider) =>
-          provider.id === sttStatus.defaultProvider && provider.available,
+          provider.id === sttStatus.defaultProvider,
       )?.id ??
-      sttStatus.providers.find((provider) => provider.available)?.id ??
+      availableProviders[0]?.id ??
       sttStatus.defaultProvider
     );
-  }, [sttStatus.defaultProvider, sttStatus.providers]);
+  }, [availableProviders, sttStatus.defaultProvider]);
 
   const [providerId, setProviderId] = useState<SttProviderId>(resolvedProvider);
 
@@ -51,8 +55,11 @@ export function SttPanel({
   }, [resolvedProvider]);
 
   const selectedProvider =
+    availableProviders.find((provider) => provider.id === providerId) ??
+    availableProviders[0] ??
     sttStatus.providers.find((provider) => provider.id === providerId) ??
     sttStatus.providers[0];
+  const showModel = providerId === "volcengine";
 
   async function handleTranscribe(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -75,7 +82,9 @@ export function SttPanel({
     const formData = new FormData();
     formData.set("file", audioFile);
     formData.set("provider", providerId);
-    formData.set("model", model);
+    if (showModel && model) {
+      formData.set("model", model);
+    }
 
     setIsSubmitting(true);
     onResultChange({
@@ -144,27 +153,24 @@ export function SttPanel({
           onChange={(event) => setProviderId(event.target.value as SttProviderId)}
           value={providerId}
         >
-          {sttStatus.providers.map((provider) => (
-            <option
-              disabled={!provider.available}
-              key={provider.id}
-              value={provider.id}
-            >
+          {availableProviders.map((provider) => (
+            <option key={provider.id} value={provider.id}>
               {provider.label}
               {provider.id === sttStatus.defaultProvider ? " (Default)" : ""}
-              {provider.available ? "" : " (Unavailable)"}
             </option>
           ))}
         </select>
       </label>
 
-      <ModelInput
-        defaultModel={sttStatus.defaultModel}
-        disabled={!sttStatus.available || isSubmitting}
-        label="STT Model"
-        onModelChange={setModel}
-        storageKey="quickvoice.stt.model"
-      />
+      {showModel ? (
+        <ModelInput
+          disabled={!sttStatus.available || isSubmitting}
+          label="STT Model"
+          onModelChange={setModel}
+          options={sttStatus.modelOptions ?? []}
+          value={model}
+        />
+      ) : null}
 
       <label className="block">
         <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
@@ -178,12 +184,6 @@ export function SttPanel({
           type="file"
         />
       </label>
-
-      {selectedProvider ? (
-        <p className="text-xs text-[var(--muted)]">
-          Using {selectedProvider.label}. Default provider is {sttStatus.defaultProvider}.
-        </p>
-      ) : null}
 
       <button
         className="rounded border border-[var(--accent)] bg-[var(--accent)] px-4 py-2 text-xs tracking-[0.08em] text-[#121212] transition-transform duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50"

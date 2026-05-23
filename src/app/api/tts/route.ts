@@ -126,6 +126,20 @@ function resolveProviderId(
   return requestedProvider;
 }
 
+function getProviderSettings(
+  providerId: TtsProviderId,
+  status: PublicProviderStatus["tts"],
+) {
+  return (
+    status.providerSettings?.[providerId] ?? {
+      defaultModel: status.defaultModel,
+      modelOptions: status.modelOptions ?? [],
+      defaultVoice: status.defaultVoice,
+      voiceOptions: status.voiceOptions ?? [],
+    }
+  );
+}
+
 export function createTtsRouteHandler(deps: TtsRouteDeps = {}) {
   const providers = {
     ...defaultProviders,
@@ -192,13 +206,17 @@ export function createTtsRouteHandler(deps: TtsRouteDeps = {}) {
       }
 
       const text = await resolveText(formData);
-      const voice = readStringField(formData, "voice", "zh-CN-XiaoxiaoNeural");
+      const providerSettings = getProviderSettings(providerId, publicStatus.tts);
+      const voice = readStringField(
+        formData,
+        "voice",
+        providerSettings.defaultVoice,
+      );
       const model =
         readStringField(formData, "model").trim() ||
-        publicStatus.tts.defaultModel;
+        providerSettings.defaultModel;
       const rate = readStringField(formData, "rate", "1.0");
       const pitch = readStringField(formData, "pitch", "0");
-      const style = readStringField(formData, "style", "general");
 
       const input: GenerateSpeechInput = {
         text,
@@ -206,7 +224,6 @@ export function createTtsRouteHandler(deps: TtsRouteDeps = {}) {
         model,
         rate,
         pitch,
-        style,
       };
 
       const result = await generateSpeech(input, { provider });

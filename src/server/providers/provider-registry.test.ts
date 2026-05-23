@@ -5,10 +5,17 @@ test("exposes MVP provider options and defaults", async () => {
     VOLCENGINE_ACCESS_KEY_ID: "ak",
     VOLCENGINE_SECRET_ACCESS_KEY: "sk",
     VOLCENGINE_STT_APP_ID: "app",
+    VOLCENGINE_STT_MODEL_OPTIONS: "volc.bigasr.auc_turbo,volc.bigasr.auc",
     VOSK_WS_URL: "ws://vosk-cn:2700",
     MINIMAX_API_KEY: "minimax",
-    MINIMAX_GROUP_ID: "group",
+    MINIMAX_TTS_MODEL_OPTIONS: "speech-2.8-turbo,speech-2.8-hd",
+    MINIMAX_TTS_VOICE_ID: "Chinese (Mandarin)_Warm_Girl",
+    MINIMAX_TTS_VOICE_OPTIONS:
+      "Chinese (Mandarin)_Warm_Girl,Chinese (Mandarin)_News_Anchor",
+    MICROSOFT_TTS_VOICE_ID: "zh-CN-YunxiNeural",
+    MICROSOFT_TTS_VOICE_OPTIONS: "zh-CN-YunxiNeural,en-US-JennyNeural",
     OPENAI_API_KEY: "openai",
+    OPENAI_SUMMARY_MODEL_OPTIONS: "gpt-5.5,gpt-5.5-mini",
   });
 
   const status = await registry.getPublicStatus();
@@ -19,7 +26,27 @@ test("exposes MVP provider options and defaults", async () => {
     { id: "vosk", label: "Vosk CN", available: true },
   ]);
   expect(status.tts.defaultProvider).toBe("minimax");
-  expect(status.tts.defaultModel).toBe("speech-2.8-turbo");
+  expect(status.tts.providerSettings.minimax).toEqual({
+    defaultModel: "speech-2.8-turbo",
+    modelOptions: ["speech-2.8-turbo", "speech-2.8-hd"],
+    defaultVoice: "Chinese (Mandarin)_Warm_Girl",
+    voiceOptions: [
+      "Chinese (Mandarin)_Warm_Girl",
+      "Chinese (Mandarin)_News_Anchor",
+    ],
+  });
+  expect(status.tts.providerSettings.microsoft_unofficial).toEqual({
+    defaultModel: "",
+    modelOptions: [],
+    defaultVoice: "zh-CN-YunxiNeural",
+    voiceOptions: ["zh-CN-YunxiNeural", "en-US-JennyNeural"],
+  });
+  expect(status.tts.providerSettings.minimax.voiceOptions).not.toContain(
+    "zh-CN-YunxiNeural",
+  );
+  expect(
+    status.tts.providerSettings.microsoft_unofficial.voiceOptions,
+  ).not.toContain("Chinese (Mandarin)_Warm_Girl");
   expect(status.tts.providers).toEqual([
     { id: "minimax", label: "MiniMax", available: true },
     {
@@ -29,14 +56,18 @@ test("exposes MVP provider options and defaults", async () => {
     },
   ]);
   expect(status.stt.defaultModel).toBe("volc.bigasr.auc_turbo");
+  expect(status.stt.modelOptions).toEqual([
+    "volc.bigasr.auc_turbo",
+    "volc.bigasr.auc",
+  ]);
   expect(status.summary.available).toBe(true);
   expect(status.summary.defaultModel).toBe("gpt-5.5");
-  expect(status.summary).not.toHaveProperty("models");
+  expect(status.summary.modelOptions).toEqual(["gpt-5.5", "gpt-5.5-mini"]);
 });
 
-test("does not expose SiliconFlow", async () => {
+test("exposes only active STT providers", async () => {
   const registry = createProviderRegistry({
-    ENABLE_STT: "true",
+    ENABLE_STT_VOLCENGINE: "true",
   });
 
   const status = await registry.getPublicStatus();
@@ -44,25 +75,6 @@ test("does not expose SiliconFlow", async () => {
   expect(status.stt.providers.map((provider) => provider.id)).toEqual([
     "volcengine",
     "vosk",
-  ]);
-});
-
-test("ignores removed public STT flag", async () => {
-  const registry = createProviderRegistry({
-    ENABLE_STT: "true",
-    ENABLE_PUBLIC_STT: "false",
-    VOLCENGINE_ACCESS_KEY_ID: "ak",
-    VOLCENGINE_SECRET_ACCESS_KEY: "sk",
-    VOLCENGINE_STT_APP_ID: "app",
-    VOSK_WS_URL: "ws://vosk-cn:2700",
-  });
-
-  const status = await registry.getPublicStatus();
-
-  expect(status.stt.available).toBe(true);
-  expect(status.stt.providers).toEqual([
-    { id: "volcengine", label: "Volcengine", available: true },
-    { id: "vosk", label: "Vosk CN", available: true },
   ]);
 });
 

@@ -35,7 +35,6 @@ type WorkbenchProps = {
 
 export function Workbench({ status }: WorkbenchProps) {
   const [mode, setMode] = useState<"tts" | "stt">("tts");
-  const [ttsSeedText, setTtsSeedText] = useState("");
   const [ttsResult, setTtsResult] = useState<TtsResultState>(DEFAULT_TTS_RESULT);
   const [sttResult, setSttResult] = useState<SttResultState>(DEFAULT_STT_RESULT);
 
@@ -65,7 +64,7 @@ export function Workbench({ status }: WorkbenchProps) {
           {mode === "tts" ? (
             <TtsForm
               onResultChange={setTtsResult}
-              seedText={ttsSeedText}
+              seedText=""
               ttsStatus={status.tts}
             />
           ) : (
@@ -85,18 +84,6 @@ export function Workbench({ status }: WorkbenchProps) {
         <div className="border border-[var(--line)] bg-[var(--surface)] p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xl">{mode === "tts" ? "Audio Output" : "Transcript"}</h2>
-            {mode === "stt" && sttResult.text ? (
-              <button
-                className="rounded border border-[var(--line)] px-2.5 py-1 text-xs tracking-[0.08em] text-[var(--muted)] transition-all duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px hover:border-[var(--accent)]/65"
-                onClick={() => {
-                  setTtsSeedText(sttResult.text);
-                  setMode("tts");
-                }}
-                type="button"
-              >
-                Send To TTS
-              </button>
-            ) : null}
           </div>
 
           {mode === "tts" ? (
@@ -104,10 +91,6 @@ export function Workbench({ status }: WorkbenchProps) {
           ) : (
             <div className="space-y-4">
               <TranscriptionResult
-                onSendToTts={() => {
-                  setTtsSeedText(sttResult.text);
-                  setMode("tts");
-                }}
                 onTextChange={(nextText) => {
                   setSttResult((previous) => ({
                     ...previous,

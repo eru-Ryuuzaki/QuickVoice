@@ -39,6 +39,24 @@ function createPublicStatus(
     tts: {
       available: true,
       defaultProvider: "minimax",
+      defaultModel: "speech-2.8-turbo",
+      modelOptions: ["speech-2.8-turbo"],
+      defaultVoice: "Chinese (Mandarin)_Warm_Girl",
+      voiceOptions: ["Chinese (Mandarin)_Warm_Girl"],
+      providerSettings: {
+        minimax: {
+          defaultModel: "speech-2.8-turbo",
+          modelOptions: ["speech-2.8-turbo"],
+          defaultVoice: "Chinese (Mandarin)_Warm_Girl",
+          voiceOptions: ["Chinese (Mandarin)_Warm_Girl"],
+        },
+        microsoft_unofficial: {
+          defaultModel: "",
+          modelOptions: [],
+          defaultVoice: "zh-CN-XiaoxiaoNeural",
+          voiceOptions: ["zh-CN-XiaoxiaoNeural"],
+        },
+      },
       providers: [
         { id: "minimax", label: "MiniMax", available: true },
         {
@@ -61,6 +79,7 @@ function createPublicStatus(
       provider: "openai",
       available: true,
       defaultModel: "gpt-5.5",
+      modelOptions: ["gpt-5.5"],
     },
   };
 }
@@ -199,6 +218,45 @@ test("passes manual STT model to the provider", async () => {
   );
 });
 
+test("does not pass default Volcengine model to Vosk", async () => {
+  const transcribe = vi.fn(async () => ({
+    text: "hello from vosk",
+  }));
+  const voskProvider: SttProvider = {
+    id: "vosk",
+    label: "Vosk CN",
+    transcribe,
+  };
+
+  const POST = createSttRouteHandler({
+    providers: {
+      vosk: voskProvider,
+    },
+    limiter: createAllowedLimiter(),
+    getClientIp: () => "127.0.0.1",
+    getPublicStatus: async () =>
+      createPublicStatus({
+        defaultModel: "volc.bigasr.auc_turbo",
+      }),
+  });
+
+  const response = await POST(
+    createRequest(
+      new File([new Uint8Array([1, 2, 3])], "voice.mp3", {
+        type: "audio/mpeg",
+      }),
+      "vosk",
+    ),
+  );
+
+  expect(response.status).toBe(200);
+  expect(transcribe).toHaveBeenCalledWith(
+    expect.objectContaining({
+      model: "",
+    }),
+  );
+});
+
 test("returns unavailable when the requested provider is disabled", async () => {
   const volcengineProvider: SttProvider = {
     id: "volcengine",
@@ -255,7 +313,7 @@ test("returns unavailable when the requested provider is disabled", async () => 
   expect(payload.error.code).toBe("PROVIDER_UNAVAILABLE");
 });
 
-test("returns validation error for removed SiliconFlow provider id", async () => {
+test("returns validation error for unsupported STT provider id", async () => {
   const volcengineProvider: SttProvider = {
     id: "volcengine",
     label: "Volcengine",
@@ -291,7 +349,7 @@ test("returns validation error for removed SiliconFlow provider id", async () =>
       new File([new Uint8Array([1, 2, 3])], "voice.mp3", {
         type: "audio/mpeg",
       }),
-      "siliconflow",
+      "unsupported_provider",
     ),
   );
   const payload = await response.json();

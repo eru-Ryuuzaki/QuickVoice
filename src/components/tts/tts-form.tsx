@@ -43,57 +43,94 @@ export function TtsForm({
   ttsStatus,
   onResultChange,
 }: TtsFormProps) {
-  const [inputMode, setInputMode] = useState<"text" | "file">("text");
   const [text, setText] = useState(seedText);
   const [file, setFile] = useState<File | null>(null);
   const [voiceGroups, setVoiceGroups] = useState<VoiceGroup[]>(FALLBACK_GROUPS);
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>("loading");
-  const [voiceId, setVoiceId] = useState("zh-CN-XiaoxiaoNeural");
+  const [voiceId, setVoiceId] = useState(ttsStatus.defaultVoice);
   const [model, setModel] = useState(ttsStatus.defaultModel);
-  const [rate, setRate] = useState("1.0");
-  const [pitch, setPitch] = useState("0");
-  const [style, setStyle] = useState("general");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const currentAudioUrl = useRef<string | null>(null);
 
+  const availableProviders = useMemo(() => {
+    return ttsStatus.providers.filter((provider) => provider.available);
+  }, [ttsStatus.providers]);
+
   const resolvedProvider = useMemo(() => {
     return (
-      ttsStatus.providers.find(
+      availableProviders.find(
         (provider) =>
-          provider.id === ttsStatus.defaultProvider && provider.available,
+          provider.id === ttsStatus.defaultProvider,
       )?.id ??
-      ttsStatus.providers.find((provider) => provider.available)?.id ??
+      availableProviders[0]?.id ??
       ttsStatus.defaultProvider
     );
-  }, [ttsStatus.defaultProvider, ttsStatus.providers]);
+  }, [availableProviders, ttsStatus.defaultProvider]);
 
   const [providerId, setProviderId] =
     useState<TtsProviderId>(resolvedProvider);
-
-  useEffect(() => {
-    setModel(ttsStatus.defaultModel);
-  }, [ttsStatus.defaultModel]);
 
   useEffect(() => {
     setProviderId(resolvedProvider);
   }, [resolvedProvider]);
 
   const selectedProvider =
+    availableProviders.find((provider) => provider.id === providerId) ??
+    availableProviders[0] ??
     ttsStatus.providers.find((provider) => provider.id === providerId) ??
     ttsStatus.providers[0];
+  const selectedProviderSettings =
+    ttsStatus.providerSettings?.[providerId] ?? {
+      defaultModel: ttsStatus.defaultModel,
+      modelOptions: ttsStatus.modelOptions ?? [],
+      defaultVoice: ttsStatus.defaultVoice,
+      voiceOptions: ttsStatus.voiceOptions ?? [],
+    };
+
+  useEffect(() => {
+    setModel(selectedProviderSettings.defaultModel);
+  }, [selectedProviderSettings.defaultModel]);
+
+  useEffect(() => {
+    setVoiceId(selectedProviderSettings.defaultVoice);
+  }, [selectedProviderSettings.defaultVoice]);
 
   const voiceOptions = useMemo(() => {
-    return voiceGroups.flatMap((group) => {
-      return group.voices.map((voice) => ({
-        id: voice.id,
-        label: `${voice.label} · ${voice.locale}`,
-      }));
+    const catalogOptions =
+      providerId === "microsoft_unofficial"
+        ? voiceGroups.flatMap((group) => {
+            return group.voices.map((voice) => ({
+              id: voice.id,
+              label: `${voice.label} (${voice.locale})`,
+            }));
+          })
+        : [];
+
+    const configuredOptions = selectedProviderSettings.voiceOptions.map(
+      (voice) => ({
+        id: voice,
+        label: voice,
+      }),
+    );
+    const options = [...catalogOptions, ...configuredOptions];
+    const seen = new Set<string>();
+
+    return options.filter((voice) => {
+      if (!voice.id || seen.has(voice.id)) {
+        return false;
+      }
+
+      seen.add(voice.id);
+      return true;
     });
-  }, [voiceGroups]);
+  }, [providerId, selectedProviderSettings.voiceOptions, voiceGroups]);
+
+  const showModel = providerId === "minimax";
+  const showVoice =
+    providerId === "minimax" || providerId === "microsoft_unofficial";
 
   useEffect(() => {
     setText(seedText);
-    setInputMode("text");
   }, [seedText]);
 
   useEffect(() => {
@@ -110,10 +147,6 @@ export function TtsForm({
         const payload = (await response.json()) as { groups?: VoiceGroup[] };
         if (!cancelled && payload.groups && payload.groups.length > 0) {
           setVoiceGroups(payload.groups);
-          const firstVoice = payload.groups[0]?.voices[0];
-          if (firstVoice) {
-            setVoiceId(firstVoice.id);
-          }
           setVoiceStatus("loaded");
         } else if (!cancelled) {
           setVoiceStatus("error");
@@ -145,25 +178,24 @@ export function TtsForm({
     event.preventDefault();
 
     const formData = new FormData();
-    if (inputMode === "file") {
+    if (text.trim()) {
+      formData.set("text", text);
+    } else {
       if (!file) {
         onResultChange({
           ...DEFAULT_TTS_RESULT,
-          error: "Please select a .txt file first.",
+          error: "Please type text or select a .txt file first.",
         });
         return;
       }
 
       formData.set("file", file);
-    } else {
-      formData.set("text", text);
     }
 
     formData.set("voice", voiceId);
-    formData.set("model", model);
-    formData.set("rate", rate);
-    formData.set("pitch", pitch);
-    formData.set("style", style);
+    if (model) {
+      formData.set("model", model);
+    }
     formData.set("provider", providerId);
 
     setIsSubmitting(true);
@@ -199,7 +231,7 @@ export function TtsForm({
         audioUrl: nextAudioUrl,
         error: null,
         fileName: "quickvoice.mp3",
-        details: `Voice: ${voiceId} · Rate: ${rate} · Pitch: ${pitch}`,
+        details: `Voice: ${voiceId}`,
       });
     } catch (error) {
       const message =
@@ -222,58 +254,31 @@ export function TtsForm({
         </p>
       </header>
 
-      <div className="flex items-center gap-2">
-        <button
-          className={`rounded border px-2.5 py-1 text-xs tracking-[0.08em] transition-all duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] ${
-            inputMode === "text"
-              ? "border-[var(--accent)] bg-[var(--accent)] text-[#121212]"
-              : "border-[var(--line)] text-[var(--muted)] hover:-translate-y-px hover:border-[var(--accent)]/65"
-          }`}
-          onClick={() => setInputMode("text")}
-          type="button"
-        >
-          Type Text
-        </button>
-        <button
-          className={`rounded border px-2.5 py-1 text-xs tracking-[0.08em] transition-all duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] ${
-            inputMode === "file"
-              ? "border-[var(--accent)] bg-[var(--accent)] text-[#121212]"
-              : "border-[var(--line)] text-[var(--muted)] hover:-translate-y-px hover:border-[var(--accent)]/65"
-          }`}
-          onClick={() => setInputMode("file")}
-          type="button"
-        >
-          Upload .txt
-        </button>
-      </div>
+      <label className="block">
+        <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+          Input Text
+        </span>
+        <textarea
+          className="h-36 w-full resize-y rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-sm leading-[1.6] text-[var(--text)] outline-none transition-colors duration-200 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] focus-visible:border-[var(--accent)]"
+          onChange={(event) => setText(event.target.value)}
+          placeholder="Type text for speech synthesis..."
+          value={text}
+        />
+      </label>
 
-      {inputMode === "text" ? (
-        <label className="block">
-          <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-            Input Text
-          </span>
-          <textarea
-            className="h-36 w-full resize-y rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-sm leading-[1.6] text-[var(--text)] outline-none transition-colors duration-200 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] focus-visible:border-[var(--accent)]"
-            onChange={(event) => setText(event.target.value)}
-            placeholder="Type text for speech synthesis..."
-            value={text}
-          />
-        </label>
-      ) : (
-        <label className="block">
-          <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-            TXT File
-          </span>
-          <input
-            accept=".txt,text/plain"
-            className="w-full rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] outline-none file:mr-3 file:rounded file:border file:border-[var(--line)] file:bg-[var(--surface)] file:px-2 file:py-1 file:text-xs file:text-[var(--text)]"
-            onChange={(event) => {
-              setFile(event.target.files?.[0] ?? null);
-            }}
-            type="file"
-          />
-        </label>
-      )}
+      <label className="block">
+        <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+          TXT File
+        </span>
+        <input
+          accept=".txt,text/plain"
+          className="w-full rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] outline-none file:mr-3 file:rounded file:border file:border-[var(--line)] file:bg-[var(--surface)] file:px-2 file:py-1 file:text-xs file:text-[var(--text)]"
+          onChange={(event) => {
+            setFile(event.target.files?.[0] ?? null);
+          }}
+          type="file"
+        />
+      </label>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <label className="block">
@@ -288,92 +293,37 @@ export function TtsForm({
             }
             value={providerId}
           >
-            {ttsStatus.providers.map((provider) => (
-              <option
-                disabled={!provider.available}
-                key={provider.id}
-                value={provider.id}
-              >
+            {availableProviders.map((provider) => (
+              <option key={provider.id} value={provider.id}>
                 {provider.label}
                 {provider.id === ttsStatus.defaultProvider ? " (Default)" : ""}
-                {provider.available ? "" : " (Unavailable)"}
               </option>
             ))}
           </select>
         </label>
 
-        <ModelInput
-          defaultModel={ttsStatus.defaultModel}
-          disabled={!ttsStatus.available || isSubmitting}
-          label="TTS Model"
-          onModelChange={setModel}
-          storageKey="quickvoice.tts.model"
-        />
+        {showModel ? (
+          <ModelInput
+            disabled={!ttsStatus.available || isSubmitting}
+            label="TTS Model"
+            onModelChange={setModel}
+            options={selectedProviderSettings.modelOptions}
+            value={model}
+          />
+        ) : null}
 
-        <label className="block">
-          <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-            Voice
-          </span>
-          <select
-            className="w-full rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] outline-none focus-visible:border-[var(--accent)]"
-            onChange={(event) => setVoiceId(event.target.value)}
+        {showVoice ? (
+          <ModelInput
+            disabled={!ttsStatus.available || isSubmitting}
+            label="Voice"
+            onModelChange={setVoiceId}
+            options={voiceOptions.map((voice) => ({
+              value: voice.id,
+              label: voice.label,
+            }))}
             value={voiceId}
-          >
-            {voiceOptions.map((voice) => {
-              return (
-                <option key={voice.id} value={voice.id}>
-                  {voice.label}
-                </option>
-              );
-            })}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-            Style
-          </span>
-          <select
-            className="w-full rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] outline-none focus-visible:border-[var(--accent)]"
-            onChange={(event) => setStyle(event.target.value)}
-            value={style}
-          >
-            <option value="general">General</option>
-            <option value="assistant">Assistant</option>
-            <option value="chat">Chat</option>
-            <option value="newscast">Newscast</option>
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-            Rate ({rate})
-          </span>
-          <input
-            className="w-full accent-[var(--accent)]"
-            max="2"
-            min="0.5"
-            onChange={(event) => setRate(event.target.value)}
-            step="0.1"
-            type="range"
-            value={rate}
           />
-        </label>
-
-        <label className="block">
-          <span className="mb-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-            Pitch ({pitch})
-          </span>
-          <input
-            className="w-full accent-[var(--accent)]"
-            max="20"
-            min="-20"
-            onChange={(event) => setPitch(event.target.value)}
-            step="1"
-            type="range"
-            value={pitch}
-          />
-        </label>
+        ) : null}
       </div>
 
       <button
