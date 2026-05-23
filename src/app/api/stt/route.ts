@@ -7,7 +7,7 @@ import {
   type RateLimiter,
 } from "@/server/platform/rate-limit";
 import { createProviderRegistry } from "@/server/providers/provider-registry";
-import { createSiliconFlowSttProvider } from "@/server/providers/stt/siliconflow";
+import { createVolcengineSttProvider } from "@/server/providers/stt/volcengine";
 import { createVoskSttProvider } from "@/server/providers/stt/vosk";
 import {
   isSttProviderId,
@@ -30,8 +30,8 @@ const defaultLimiter = createRateLimiter({
   windowMs: 60_000,
 });
 
-const defaultProviders: Record<SttProviderId, SttProvider> = {
-  siliconflow: createSiliconFlowSttProvider(),
+const defaultProviders: Partial<Record<SttProviderId, SttProvider>> = {
+  volcengine: createVolcengineSttProvider(),
   vosk: createVoskSttProvider(),
 };
 

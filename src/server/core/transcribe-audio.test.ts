@@ -3,8 +3,8 @@ import type { SttProvider } from "@/server/providers/types";
 
 test("returns transcript for valid audio upload", async () => {
   const provider: SttProvider = {
-    id: "siliconflow",
-    label: "SiliconFlow",
+    id: "volcengine",
+    label: "Volcengine",
     async transcribe() {
       return {
         text: "test transcript",
@@ -29,8 +29,8 @@ test("returns transcript for valid audio upload", async () => {
 
 test("rejects unsupported audio file upload", async () => {
   const provider: SttProvider = {
-    id: "siliconflow",
-    label: "SiliconFlow",
+    id: "volcengine",
+    label: "Volcengine",
     async transcribe() {
       return {
         text: "never-called",

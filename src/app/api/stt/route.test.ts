@@ -1,4 +1,4 @@
-﻿import { createSttRouteHandler } from "@/app/api/stt/route";
+import { createSttRouteHandler } from "@/app/api/stt/route";
 import type { RateLimiter } from "@/server/platform/rate-limit";
 import type { PublicProviderStatus, SttProvider } from "@/server/providers/types";
 
@@ -29,28 +29,44 @@ function createRequest(file: File, provider?: string) {
   } as Request;
 }
 
-function createPublicStatus(overrides?: Partial<PublicProviderStatus["stt"]>): PublicProviderStatus {
+function createPublicStatus(
+  overrides?: Partial<PublicProviderStatus["stt"]>,
+): PublicProviderStatus {
   return {
     tts: {
       available: true,
-      provider: "microsoft_unofficial",
+      defaultProvider: "minimax",
+      providers: [
+        { id: "minimax", label: "MiniMax", available: true },
+        {
+          id: "microsoft_unofficial",
+          label: "Microsoft Unofficial",
+          available: true,
+        },
+      ],
     },
     stt: {
       available: true,
-      defaultProvider: "siliconflow",
+      defaultProvider: "volcengine",
       providers: [
-        { id: "siliconflow", label: "SiliconFlow", available: true },
+        { id: "volcengine", label: "Volcengine", available: true },
         { id: "vosk", label: "Vosk CN", available: true },
       ],
       ...overrides,
+    },
+    summary: {
+      provider: "openai",
+      available: true,
+      defaultModel: "gpt-5.5",
+      models: [{ id: "gpt-5.5", label: "gpt-5.5", default: true }],
     },
   };
 }
 
 test("routes transcription to the requested Vosk provider", async () => {
-  const siliconflowProvider: SttProvider = {
-    id: "siliconflow",
-    label: "SiliconFlow",
+  const volcengineProvider: SttProvider = {
+    id: "volcengine",
+    label: "Volcengine",
     async transcribe() {
       return {
         text: "not used",
@@ -70,7 +86,7 @@ test("routes transcription to the requested Vosk provider", async () => {
 
   const POST = createSttRouteHandler({
     providers: {
-      siliconflow: siliconflowProvider,
+      volcengine: volcengineProvider,
       vosk: voskProvider,
     },
     limiter: createAllowedLimiter(),
@@ -93,13 +109,13 @@ test("routes transcription to the requested Vosk provider", async () => {
   expect(payload.provider).toBe("vosk");
 });
 
-test("uses the configured default provider when no provider is supplied", async () => {
-  const siliconflowProvider: SttProvider = {
-    id: "siliconflow",
-    label: "SiliconFlow",
+test("uses configured Volcengine default when no provider is supplied", async () => {
+  const volcengineProvider: SttProvider = {
+    id: "volcengine",
+    label: "Volcengine",
     async transcribe() {
       return {
-        text: "hello from siliconflow",
+        text: "hello from volcengine",
       };
     },
   };
@@ -116,14 +132,14 @@ test("uses the configured default provider when no provider is supplied", async 
 
   const POST = createSttRouteHandler({
     providers: {
-      siliconflow: siliconflowProvider,
+      volcengine: volcengineProvider,
       vosk: voskProvider,
     },
     limiter: createAllowedLimiter(),
     getClientIp: () => "127.0.0.1",
     getPublicStatus: async () =>
       createPublicStatus({
-        defaultProvider: "siliconflow",
+        defaultProvider: "volcengine",
       }),
   });
 
@@ -137,13 +153,14 @@ test("uses the configured default provider when no provider is supplied", async 
   const payload = await response.json();
 
   expect(response.status).toBe(200);
-  expect(payload.provider).toBe("siliconflow");
+  expect(payload.text).toBe("hello from volcengine");
+  expect(payload.provider).toBe("volcengine");
 });
 
 test("returns unavailable when the requested provider is disabled", async () => {
-  const siliconflowProvider: SttProvider = {
-    id: "siliconflow",
-    label: "SiliconFlow",
+  const volcengineProvider: SttProvider = {
+    id: "volcengine",
+    label: "Volcengine",
     async transcribe() {
       return {
         text: "not used",
@@ -163,7 +180,7 @@ test("returns unavailable when the requested provider is disabled", async () => 
 
   const POST = createSttRouteHandler({
     providers: {
-      siliconflow: siliconflowProvider,
+      volcengine: volcengineProvider,
       vosk: voskProvider,
     },
     limiter: createAllowedLimiter(),
@@ -171,7 +188,7 @@ test("returns unavailable when the requested provider is disabled", async () => 
     getPublicStatus: async () =>
       createPublicStatus({
         providers: [
-          { id: "siliconflow", label: "SiliconFlow", available: true },
+          { id: "volcengine", label: "Volcengine", available: true },
           {
             id: "vosk",
             label: "Vosk CN",
@@ -196,10 +213,10 @@ test("returns unavailable when the requested provider is disabled", async () => 
   expect(payload.error.code).toBe("PROVIDER_UNAVAILABLE");
 });
 
-test("returns validation error for an unknown provider id", async () => {
-  const siliconflowProvider: SttProvider = {
-    id: "siliconflow",
-    label: "SiliconFlow",
+test("returns validation error for removed SiliconFlow provider id", async () => {
+  const volcengineProvider: SttProvider = {
+    id: "volcengine",
+    label: "Volcengine",
     async transcribe() {
       return {
         text: "not used",
@@ -219,7 +236,7 @@ test("returns validation error for an unknown provider id", async () => {
 
   const POST = createSttRouteHandler({
     providers: {
-      siliconflow: siliconflowProvider,
+      volcengine: volcengineProvider,
       vosk: voskProvider,
     },
     limiter: createAllowedLimiter(),
@@ -232,7 +249,7 @@ test("returns validation error for an unknown provider id", async () => {
       new File([new Uint8Array([1, 2, 3])], "voice.mp3", {
         type: "audio/mpeg",
       }),
-      "unknown",
+      "siliconflow",
     ),
   );
   const payload = await response.json();

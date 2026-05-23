@@ -8,11 +8,11 @@ test("keeps STT panel visible when all providers are unavailable", () => {
       sttStatus={{
         available: false,
         reason: "disabled",
-        defaultProvider: "siliconflow",
+        defaultProvider: "volcengine",
         providers: [
           {
-            id: "siliconflow",
-            label: "SiliconFlow",
+            id: "volcengine",
+            label: "Volcengine",
             available: false,
             reason: "disabled",
           },
@@ -45,8 +45,8 @@ test("renders a provider selector with unavailable options disabled", () => {
         defaultProvider: "vosk",
         providers: [
           {
-            id: "siliconflow",
-            label: "SiliconFlow",
+            id: "volcengine",
+            label: "Volcengine",
             available: false,
             reason: "disabled",
           },
@@ -63,6 +63,6 @@ test("renders a provider selector with unavailable options disabled", () => {
   );
 
   expect(screen.getByLabelText("STT Provider")).toHaveValue("vosk");
-  expect(screen.getByRole("option", { name: /SiliconFlow/ })).toBeDisabled();
+  expect(screen.getByRole("option", { name: /Volcengine/ })).toBeDisabled();
   expect(screen.getByRole("option", { name: /Vosk CN/ })).not.toBeDisabled();
 });
