@@ -125,6 +125,37 @@ test("uses request model as Volcengine resource id when supplied", async () => {
   );
 });
 
+test("derives default query endpoint from injected submit endpoint", async () => {
+  const fetchImpl = vi
+    .fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }))
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ result: { text: "custom endpoint" } }), {
+        status: 200,
+      }),
+    ) as unknown as typeof fetch;
+
+  const provider = createVolcengineSttProvider({
+    apiKey: "api-key",
+    resourceId: "volc.seedasr.auc",
+    submitEndpoint: "https://example.test/custom/submit",
+    storage: createStorage(),
+    fetchImpl,
+    sleep: async () => undefined,
+  });
+
+  await provider.transcribe({
+    file: createAudioFile(new Uint8Array([1])),
+    model: "",
+  });
+
+  expect(fetchImpl).toHaveBeenNthCalledWith(
+    2,
+    "https://example.test/custom/query",
+    expect.any(Object),
+  );
+});
+
 test("maps Volcengine submit failures", async () => {
   const fetchImpl = vi.fn(
     async () => new Response("bad", { status: 503 }),

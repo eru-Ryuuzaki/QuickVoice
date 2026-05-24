@@ -44,8 +44,11 @@ function getDefaults() {
     apiKey: config.volcengineSttApiKey,
     resourceId: config.volcengineSttModel,
     submitEndpoint: config.volcengineSttEndpoint,
-    queryEndpoint: config.volcengineSttEndpoint.replace(/\/submit$/, "/query"),
   };
+}
+
+function deriveQueryEndpoint(submitEndpoint: string) {
+  return submitEndpoint.replace(/\/submit$/, "/query");
 }
 
 async function readJsonPayload(response: Response): Promise<VolcenginePayload> {
@@ -103,7 +106,8 @@ export function createVolcengineSttProvider(
   const apiKey = options.apiKey ?? defaults.apiKey;
   const resourceId = options.resourceId ?? defaults.resourceId;
   const submitEndpoint = options.submitEndpoint ?? defaults.submitEndpoint;
-  const queryEndpoint = options.queryEndpoint ?? defaults.queryEndpoint;
+  const queryEndpoint =
+    options.queryEndpoint ?? deriveQueryEndpoint(submitEndpoint);
   const storage = options.storage ?? createCosS3AudioStorage();
   const fetchImpl = options.fetchImpl ?? fetch;
   const sleep = options.sleep ?? defaultSleep;
