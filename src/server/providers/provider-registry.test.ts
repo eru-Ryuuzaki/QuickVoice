@@ -4,6 +4,10 @@ test("exposes MVP provider options and defaults", async () => {
   const registry = createProviderRegistry({
     VOLCENGINE_STT_API_KEY: "api-key",
     VOLCENGINE_STT_MODEL_OPTIONS: "volc.bigasr.auc_turbo,volc.bigasr.auc",
+    COS_SECRET_ID: "secret-id",
+    COS_SECRET_KEY: "secret-key",
+    COS_BUCKET: "quickvoice-1250000000",
+    COS_REGION: "ap-shanghai",
     VOSK_STT_WS_URL: "ws://vosk-cn:2700",
     MINIMAX_TTS_API_KEY: "minimax",
     MINIMAX_TTS_MODEL_OPTIONS: "speech-2.8-turbo,speech-2.8-hd",
@@ -53,8 +57,9 @@ test("exposes MVP provider options and defaults", async () => {
       available: true,
     },
   ]);
-  expect(status.stt.defaultModel).toBe("volc.bigasr.auc_turbo");
+  expect(status.stt.defaultModel).toBe("volc.seedasr.auc");
   expect(status.stt.modelOptions).toEqual([
+    "volc.seedasr.auc",
     "volc.bigasr.auc_turbo",
     "volc.bigasr.auc",
   ]);
@@ -118,6 +123,10 @@ test("marks missing paid-provider credentials as unconfigured", async () => {
 test("does not require legacy Volcengine AppKey or Secret fields", async () => {
   const registry = createProviderRegistry({
     VOLCENGINE_STT_API_KEY: "api-key",
+    COS_SECRET_ID: "secret-id",
+    COS_SECRET_KEY: "secret-key",
+    COS_BUCKET: "quickvoice-1250000000",
+    COS_REGION: "ap-shanghai",
     VOSK_STT_WS_URL: "   ",
   });
 
@@ -128,4 +137,23 @@ test("does not require legacy Volcengine AppKey or Secret fields", async () => {
     label: "Volcengine",
     available: true,
   });
+});
+
+test("marks Volcengine unconfigured when COS config is incomplete", async () => {
+  const registry = createProviderRegistry({
+    VOLCENGINE_STT_API_KEY: "api-key",
+    VOSK_STT_WS_URL: "   ",
+    MINIMAX_TTS_API_KEY: "minimax",
+  });
+
+  const status = await registry.getPublicStatus();
+
+  expect(status.stt.providers[0]).toEqual({
+    id: "volcengine",
+    label: "Volcengine",
+    available: false,
+    reason: "unconfigured",
+  });
+  expect(status.stt.available).toBe(false);
+  expect(status.stt.reason).toBe("unconfigured");
 });

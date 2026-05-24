@@ -19,6 +19,13 @@ type RegistryConfigInput = Partial<{
   VOLCENGINE_STT_API_KEY: string;
   VOLCENGINE_STT_MODEL: string;
   VOLCENGINE_STT_MODEL_OPTIONS: string;
+  COS_SECRET_ID: string;
+  COS_SECRET_KEY: string;
+  COS_BUCKET: string;
+  COS_REGION: string;
+  COS_PUBLIC_BASE_URL: string;
+  COS_STT_PREFIX: string;
+  COS_STT_URL_TTL_SECONDS: string;
   VOSK_STT_ENABLED: string;
   VOSK_STT_WS_URL: string;
   MINIMAX_TTS_ENABLED: string;
@@ -74,7 +81,7 @@ export function createProviderRegistry(overrides?: RegistryConfigInput) {
         return disabled(id, label);
       }
 
-      if (!config.volcengineSttApiKey) {
+      if (!config.volcengineSttApiKey || !config.cosConfigured) {
         return unconfigured(id, label);
       }
     }
