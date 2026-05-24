@@ -6,8 +6,7 @@ test("exposes MVP provider options and defaults", async () => {
     VOLCENGINE_STT_MODEL_OPTIONS: "volc.bigasr.auc_turbo,volc.bigasr.auc",
     COS_SECRET_ID: "secret-id",
     COS_SECRET_KEY: "secret-key",
-    COS_BUCKET: "quickvoice-1250000000",
-    COS_REGION: "ap-shanghai",
+    COS_ENDPOINT: "https://quickvoice-1250000000.cos.ap-shanghai.myqcloud.com",
     VOSK_STT_WS_URL: "ws://vosk-cn:2700",
     MINIMAX_TTS_API_KEY: "minimax",
     MINIMAX_TTS_MODEL_OPTIONS: "speech-2.8-turbo,speech-2.8-hd",
@@ -125,8 +124,7 @@ test("does not require legacy Volcengine AppKey or Secret fields", async () => {
     VOLCENGINE_STT_API_KEY: "api-key",
     COS_SECRET_ID: "secret-id",
     COS_SECRET_KEY: "secret-key",
-    COS_BUCKET: "quickvoice-1250000000",
-    COS_REGION: "ap-shanghai",
+    COS_ENDPOINT: "https://quickvoice-1250000000.cos.ap-shanghai.myqcloud.com",
     VOSK_STT_WS_URL: "   ",
   });
 
@@ -144,8 +142,7 @@ test("marks Volcengine unconfigured when COS config is incomplete", async () => 
     VOLCENGINE_STT_API_KEY: "api-key",
     COS_SECRET_ID: "",
     COS_SECRET_KEY: "",
-    COS_BUCKET: "",
-    COS_REGION: "",
+    COS_ENDPOINT: "",
     VOSK_STT_WS_URL: "   ",
     MINIMAX_TTS_API_KEY: "minimax",
   });

@@ -72,6 +72,7 @@ test("uploads audio to COS and submits the audio URL to Volcengine", async () =>
   const [, requestOptions] = fetchImpl.mock.calls[0] ?? [];
   const body = JSON.parse(String(requestOptions?.body));
   expect(body.audio.url).toBe("https://cos.example.test/voice.mp3");
+  expect(body.audio.format).toBe("mp3");
   expect(body.audio.data).toBeUndefined();
   expect(fetchImpl).toHaveBeenNthCalledWith(
     2,
@@ -123,6 +124,57 @@ test("uses request model as Volcengine resource id when supplied", async () => {
       }),
     }),
   );
+});
+
+test("derives audio format from submitted COS URL", async () => {
+  const fetchImpl = vi.fn(async () => new Response(JSON.stringify({}), {
+    status: 200,
+  })) as unknown as typeof fetch;
+  const provider = createVolcengineSttProvider({
+    apiKey: "api-key",
+    resourceId: "volc.seedasr.auc",
+    submitEndpoint: "https://example.test/submit",
+    queryEndpoint: "https://example.test/query",
+    fetchImpl,
+  });
+
+  await provider.submit?.({
+    audioUrl: "https://cos.example.test/quickvoice/stt/voice.wav?sign=abc",
+    model: "",
+  });
+
+  const [, requestOptions] = fetchImpl.mock.calls[0] ?? [];
+  const body = JSON.parse(String(requestOptions?.body));
+  expect(body.audio).toEqual({
+    url: "https://cos.example.test/quickvoice/stt/voice.wav?sign=abc",
+    format: "wav",
+  });
+});
+
+test("maps successful query with empty transcript to a processing failure", async () => {
+  const fetchImpl = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ result: { text: "" } }), {
+        status: 200,
+        headers: { "X-Api-Status-Code": "20000000" },
+      }),
+  ) as typeof fetch;
+  const provider = createVolcengineSttProvider({
+    apiKey: "api-key",
+    resourceId: "volc.seedasr.auc",
+    submitEndpoint: "https://example.test/submit",
+    queryEndpoint: "https://example.test/query",
+    fetchImpl,
+  });
+  const submitted = await provider.submit?.({
+    audioUrl: "https://cos.example.test/voice.mp3",
+    model: "",
+  });
+
+  await expect(provider.query?.(submitted?.jobId ?? "")).rejects.toMatchObject({
+    code: "PROCESSING_FAILED",
+    message: expect.stringContaining("empty transcription result"),
+  });
 });
 
 test("derives default query endpoint from injected submit endpoint", async () => {
@@ -359,6 +411,44 @@ test("maps empty final transcript to processing failure", async () => {
     }),
   ).rejects.toMatchObject({
     code: "PROCESSING_FAILED",
+  });
+});
+
+test("maps exhausted pending query results to processing timeout", async () => {
+  const fetchImpl = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "X-Api-Status-Code": "20000000" },
+      }),
+    )
+    .mockResolvedValue(
+      new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "X-Api-Status-Code": "20000001" },
+      }),
+    ) as unknown as typeof fetch;
+
+  const provider = createVolcengineSttProvider({
+    apiKey: "api-key",
+    resourceId: "volc.seedasr.auc",
+    submitEndpoint: "https://example.test/submit",
+    queryEndpoint: "https://example.test/query",
+    storage: createStorage(),
+    fetchImpl,
+    sleep: async () => undefined,
+    maxPollAttempts: 2,
+  });
+
+  await expect(
+    provider.transcribe({
+      file: createAudioFile(new Uint8Array([1])),
+      model: "",
+    }),
+  ).rejects.toMatchObject({
+    code: "PROCESSING_FAILED",
+    message: expect.stringContaining("timed out"),
   });
 });
 

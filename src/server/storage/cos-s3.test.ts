@@ -17,8 +17,7 @@ test("uploads audio to COS and returns a public base URL when configured", async
     config: {
       cosSecretId: "secret-id",
       cosSecretKey: "secret-key",
-      cosBucket: "quickvoice-1250000000",
-      cosRegion: "ap-shanghai",
+      cosEndpoint: "https://quickvoice-1250000000.cos.ap-shanghai.myqcloud.com",
       cosPublicBaseUrl: "https://cdn.example.test/audio",
       cosSttPrefix: "quickvoice/stt",
       cosSttUrlTtlSeconds: 3600,
@@ -49,8 +48,7 @@ test("encodes public URL object key path segments", async () => {
     config: {
       cosSecretId: "secret-id",
       cosSecretKey: "secret-key",
-      cosBucket: "quickvoice-1250000000",
-      cosRegion: "ap-shanghai",
+      cosEndpoint: "https://quickvoice-1250000000.cos.ap-shanghai.myqcloud.com",
       cosPublicBaseUrl: "https://cdn.example.test/audio",
       cosSttPrefix: "quickvoice/stt",
       cosSttUrlTtlSeconds: 3600,
@@ -72,8 +70,7 @@ test("falls back to a presigned URL when no public base URL is configured", asyn
     config: {
       cosSecretId: "secret-id",
       cosSecretKey: "secret-key",
-      cosBucket: "quickvoice-1250000000",
-      cosRegion: "ap-shanghai",
+      cosEndpoint: "https://quickvoice-1250000000.cos.ap-shanghai.myqcloud.com",
       cosPublicBaseUrl: "",
       cosSttPrefix: "quickvoice/stt",
       cosSttUrlTtlSeconds: 900,
@@ -94,13 +91,64 @@ test("falls back to a presigned URL when no public base URL is configured", asyn
   });
 });
 
+test("creates browser upload and provider read URLs", async () => {
+  const storage = createCosS3AudioStorage({
+    config: {
+      cosSecretId: "secret-id",
+      cosSecretKey: "secret-key",
+      cosEndpoint: "https://quickvoice-1250000000.cos.ap-shanghai.myqcloud.com",
+      cosPublicBaseUrl: "",
+      cosSttPrefix: "quickvoice/stt",
+      cosSttUrlTtlSeconds: 900,
+      cosConfigured: true,
+    },
+    createKey: () => "quickvoice/stt/audio-id.mp3",
+    createPresignedPutUrl: vi.fn(
+      async () => "https://signed.example.test/upload-audio-id.mp3",
+    ),
+    createPresignedUrl: vi.fn(
+      async () => "https://signed.example.test/read-audio-id.mp3",
+    ),
+  });
+
+  const result = await storage.createUploadUrl?.(createAudioFile());
+
+  expect(result).toEqual({
+    key: "quickvoice/stt/audio-id.mp3",
+    uploadUrl: "https://signed.example.test/upload-audio-id.mp3",
+    url: "https://signed.example.test/read-audio-id.mp3",
+  });
+});
+
+test("creates presigned URLs without duplicating the bucket path", async () => {
+  const storage = createCosS3AudioStorage({
+    config: {
+      cosSecretId: "secret-id",
+      cosSecretKey: "secret-key",
+      cosEndpoint: "https://cos-1306784314.cos.ap-chengdu.myqcloud.com",
+      cosPublicBaseUrl: "",
+      cosSttPrefix: "quickvoice/stt",
+      cosSttUrlTtlSeconds: 900,
+      cosConfigured: true,
+    },
+    createKey: () => "quickvoice/stt/audio-id.wav",
+    putObject: vi.fn(async () => undefined),
+  });
+
+  const result = await storage.uploadAudio(createAudioFile("voice.wav"));
+
+  expect(new URL(result.url).origin).toBe(
+    "https://cos-1306784314.cos.ap-chengdu.myqcloud.com",
+  );
+  expect(new URL(result.url).pathname).toBe("/quickvoice/stt/audio-id.wav");
+});
+
 test("rejects uploads when COS is not configured", async () => {
   const storage = createCosS3AudioStorage({
     config: {
       cosSecretId: "",
       cosSecretKey: "",
-      cosBucket: "",
-      cosRegion: "",
+      cosEndpoint: "",
       cosPublicBaseUrl: "",
       cosSttPrefix: "quickvoice/stt",
       cosSttUrlTtlSeconds: 3600,

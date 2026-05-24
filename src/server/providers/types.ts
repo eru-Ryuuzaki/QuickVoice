@@ -98,15 +98,33 @@ export type SttTranscribeInput = {
   model: string;
 };
 
+export type SttSubmitUrlInput = {
+  audioUrl: string;
+  model: string;
+};
+
 export type SttTranscribeResult = {
   text: string;
   raw?: unknown;
 };
 
+export type SttSubmitResult = {
+  jobId: string;
+  provider: SttProviderId;
+};
+
+export type SttJobStatus =
+  | { status: "processing" | "queued" }
+  | { status: "completed"; text: string; raw?: unknown };
+
 export type SttProvider = {
   id: SttProviderId;
   label: string;
   transcribe: (input: SttTranscribeInput) => Promise<SttTranscribeResult>;
+  submit?: (
+    input: SttTranscribeInput | SttSubmitUrlInput,
+  ) => Promise<SttSubmitResult>;
+  query?: (jobId: string) => Promise<SttJobStatus>;
 };
 
 export type SummaryInput = {

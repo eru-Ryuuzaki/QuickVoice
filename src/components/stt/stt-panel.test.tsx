@@ -3,6 +3,11 @@ import userEvent from "@testing-library/user-event";
 
 import { SttPanel } from "@/components/stt/stt-panel";
 
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
+
 test("keeps STT panel visible when all providers are unavailable", () => {
   render(
     <SttPanel
@@ -42,7 +47,7 @@ test("keeps STT panel visible when all providers are unavailable", () => {
   ).not.toBeInTheDocument();
 });
 
-test("renders only available providers in the selector", () => {
+test("renders unavailable providers as disabled selector options", () => {
   render(
     <SttPanel
       sttStatus={{
@@ -69,7 +74,7 @@ test("renders only available providers in the selector", () => {
   );
 
   expect(screen.getByLabelText("STT Provider")).toHaveValue("vosk");
-  expect(screen.queryByRole("option", { name: /Volcengine/ })).toBeNull();
+  expect(screen.getByRole("option", { name: /Volcengine/ })).toBeDisabled();
   expect(screen.getByRole("option", { name: /Vosk CN/ })).not.toBeDisabled();
 });
 
@@ -206,4 +211,141 @@ test("uses configured STT model options without browser persistence", async () =
   expect((requestOptions?.body as FormData).get("model")).toBe(
     "volc.bigasr.auc",
   );
+});
+
+test("uploads Volcengine audio directly to COS before submitting the audio URL", async () => {
+  const user = userEvent.setup();
+  const onResultChange = vi.fn();
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          uploadUrl: "https://cos.example.test/upload",
+          audioUrl: "https://cos.example.test/read",
+          provider: "volcengine",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    )
+    .mockResolvedValueOnce(new Response(null, { status: 200 }))
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ text: "done", provider: "volcengine" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(
+    <SttPanel
+      onResultChange={onResultChange}
+      sttStatus={{
+        available: true,
+        defaultProvider: "volcengine",
+        defaultModel: "volc.bigasr.auc_turbo",
+        modelOptions: ["volc.bigasr.auc_turbo"],
+        providers: [{ id: "volcengine", label: "Volcengine", available: true }],
+      }}
+    />,
+  );
+
+  const audioFile = new File([new Uint8Array([1, 2, 3])], "voice.mp3", {
+    type: "audio/mpeg",
+  });
+  await user.upload(screen.getByLabelText("Audio File"), audioFile);
+  await user.click(screen.getByRole("button", { name: "Start Transcription" }));
+
+  await waitFor(() => {
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/stt");
+  const uploadBody = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+  expect(uploadBody.get("intent")).toBe("upload");
+  expect(uploadBody.get("file")).toBeNull();
+  expect(uploadBody.get("fileName")).toBe("voice.mp3");
+  expect(uploadBody.get("contentType")).toBe("audio/mpeg");
+  expect(uploadBody.get("size")).toBe(String(audioFile.size));
+
+  expect(fetchMock.mock.calls[1]).toEqual([
+    "https://cos.example.test/upload",
+    {
+      method: "PUT",
+      mode: "cors",
+      body: audioFile,
+      headers: {
+        "Content-Type": "audio/mpeg",
+      },
+    },
+  ]);
+
+  expect(fetchMock.mock.calls[2]?.[0]).toBe("/api/stt");
+  const submitBody = fetchMock.mock.calls[2]?.[1]?.body as FormData;
+  expect(submitBody.get("intent")).toBe("submit");
+  expect(submitBody.get("audioUrl")).toBe("https://cos.example.test/read");
+  expect(submitBody.get("file")).toBeNull();
+
+  await waitFor(() => {
+    expect(onResultChange).toHaveBeenLastCalledWith({
+      loading: false,
+      error: null,
+      text: "done",
+      provider: "volcengine",
+    });
+  });
+});
+
+test("shows a COS CORS hint when browser direct upload cannot reach COS", async () => {
+  const user = userEvent.setup();
+  const onResultChange = vi.fn();
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          uploadUrl: "https://cos.example.test/upload",
+          audioUrl: "https://cos.example.test/read",
+          provider: "volcengine",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    )
+    .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(
+    <SttPanel
+      onResultChange={onResultChange}
+      sttStatus={{
+        available: true,
+        defaultProvider: "volcengine",
+        defaultModel: "volc.bigasr.auc_turbo",
+        modelOptions: ["volc.bigasr.auc_turbo"],
+        providers: [{ id: "volcengine", label: "Volcengine", available: true }],
+      }}
+    />,
+  );
+
+  await user.upload(
+    screen.getByLabelText("Audio File"),
+    new File([new Uint8Array([1, 2, 3])], "voice.mp3", {
+      type: "audio/mpeg",
+    }),
+  );
+  await user.click(screen.getByRole("button", { name: "Start Transcription" }));
+
+  await waitFor(() => {
+    expect(onResultChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        error: expect.stringContaining("COS direct upload failed"),
+      }),
+    );
+  });
 });

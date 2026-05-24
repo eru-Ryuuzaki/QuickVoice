@@ -323,7 +323,7 @@ test("submits the TXT file when input text is blank", async () => {
   expect((requestOptions?.body as FormData).get("text")).toBeNull();
 });
 
-test("hides unavailable TTS providers from the selector", async () => {
+test("renders unavailable TTS providers as disabled selector options", async () => {
   const fetchMock = vi.fn().mockResolvedValue(
     new Response(JSON.stringify(voicesPayload), {
       status: 200,
@@ -354,8 +354,8 @@ test("hides unavailable TTS providers from the selector", async () => {
 
   expect(await screen.findByRole("option", { name: /MiniMax/ })).toBeInTheDocument();
   expect(
-    screen.queryByRole("option", { name: /Microsoft Unofficial/ }),
-  ).toBeNull();
+    screen.getByRole("option", { name: /Microsoft Unofficial/ }),
+  ).toBeDisabled();
 });
 
 test("uses configured TTS model options without browser persistence", async () => {

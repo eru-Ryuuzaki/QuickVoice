@@ -19,7 +19,32 @@ const DEFAULT_STT_RESULT: SttResultState = {
   error: null,
   text: "",
   provider: null,
+  statusText: undefined,
 };
+
+const STT_JOB_POLL_INTERVAL_MS = 3000;
+const STT_JOB_MAX_POLLS = 60;
+
+async function uploadAudioToCos(uploadUrl: string, audioFile: File) {
+  try {
+    return await fetch(uploadUrl, {
+      method: "PUT",
+      mode: "cors",
+      body: audioFile,
+      headers: {
+        "Content-Type": audioFile.type || "application/octet-stream",
+      },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? ` Original browser error: ${error.message}`
+        : "";
+    throw new Error(
+      `COS direct upload failed. Check the COS bucket CORS policy allows PUT from this app origin and allows the Content-Type header.${message}`,
+    );
+  }
+}
 
 export function SttPanel({
   sttStatus,
@@ -29,9 +54,10 @@ export function SttPanel({
   const [model, setModel] = useState(sttStatus.defaultModel);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const selectableProviders = sttStatus.providers;
   const availableProviders = useMemo(() => {
-    return sttStatus.providers.filter((provider) => provider.available);
-  }, [sttStatus.providers]);
+    return selectableProviders.filter((provider) => provider.available);
+  }, [selectableProviders]);
 
   const resolvedProvider = useMemo(() => {
     return (
@@ -61,6 +87,57 @@ export function SttPanel({
     sttStatus.providers[0];
   const showModel = providerId === "volcengine";
 
+  async function pollSttJob(jobId: string, provider: string) {
+    for (let attempt = 0; attempt < STT_JOB_MAX_POLLS; attempt++) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, STT_JOB_POLL_INTERVAL_MS),
+      );
+
+      const formData = new FormData();
+      formData.set("provider", provider);
+      formData.set("jobId", jobId);
+
+      const response = await fetch("/api/stt", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        status?: string;
+        text?: string;
+        provider?: string;
+        jobId?: string;
+        error?: { message?: string; code?: string };
+      };
+
+      if (response.status === 202) {
+        const statusText =
+          payload.status === "queued"
+            ? "Audio submitted. Waiting in queue..."
+            : "Audio submitted. Checking transcription status...";
+        onResultChange({
+          ...DEFAULT_STT_RESULT,
+          loading: true,
+          provider,
+          statusText,
+        });
+        continue;
+      }
+
+      if (!response.ok) {
+        const code = payload.error?.code ? `${payload.error.code}: ` : "";
+        const message = payload.error?.message ?? "Failed to transcribe audio";
+        throw new Error(`${code}${message}`);
+      }
+
+      return {
+        text: payload.text ?? "",
+        provider: payload.provider ?? provider,
+      };
+    }
+
+    throw new Error("PROCESSING_FAILED: STT job timed out");
+  }
+
   async function handleTranscribe(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!audioFile) {
@@ -79,30 +156,118 @@ export function SttPanel({
       return;
     }
 
-    const formData = new FormData();
-    formData.set("file", audioFile);
-    formData.set("provider", providerId);
-    if (showModel && model) {
-      formData.set("model", model);
-    }
-
     setIsSubmitting(true);
     onResultChange({
       ...DEFAULT_STT_RESULT,
       loading: true,
+      provider: providerId,
+      statusText: "Preparing audio upload...",
     });
 
     try {
-      const response = await fetch("/api/stt", {
-        method: "POST",
-        body: formData,
-      });
+      let response: Response;
+
+      if (providerId === "volcengine") {
+        const uploadFormData = new FormData();
+        uploadFormData.set("provider", providerId);
+        uploadFormData.set("intent", "upload");
+        uploadFormData.set("fileName", audioFile.name);
+        uploadFormData.set(
+          "contentType",
+          audioFile.type || "application/octet-stream",
+        );
+        uploadFormData.set("size", String(audioFile.size));
+        if (model) {
+          uploadFormData.set("model", model);
+        }
+
+        const uploadResponse = await fetch("/api/stt", {
+          method: "POST",
+          body: uploadFormData,
+        });
+        const uploadPayload = (await uploadResponse.json()) as {
+          uploadUrl?: string;
+          audioUrl?: string;
+          error?: { message?: string; code?: string };
+        };
+
+        if (!uploadResponse.ok || !uploadPayload.uploadUrl || !uploadPayload.audioUrl) {
+          const code = uploadPayload.error?.code
+            ? `${uploadPayload.error.code}: `
+            : "";
+          const message =
+            uploadPayload.error?.message ?? "Failed to prepare audio upload";
+          throw new Error(`${code}${message}`);
+        }
+
+        onResultChange({
+          ...DEFAULT_STT_RESULT,
+          loading: true,
+          provider: providerId,
+          statusText: "Uploading audio to COS...",
+        });
+
+        const cosResponse = await uploadAudioToCos(
+          uploadPayload.uploadUrl,
+          audioFile,
+        );
+        if (!cosResponse.ok) {
+          throw new Error(`Failed to upload audio to COS (${cosResponse.status})`);
+        }
+
+        const submitFormData = new FormData();
+        submitFormData.set("provider", providerId);
+        submitFormData.set("intent", "submit");
+        submitFormData.set("audioUrl", uploadPayload.audioUrl);
+        if (model) {
+          submitFormData.set("model", model);
+        }
+
+        response = await fetch("/api/stt", {
+          method: "POST",
+          body: submitFormData,
+        });
+      } else {
+        const formData = new FormData();
+        formData.set("file", audioFile);
+        formData.set("provider", providerId);
+        if (showModel && model) {
+          formData.set("model", model);
+        }
+
+        response = await fetch("/api/stt", {
+          method: "POST",
+          body: formData,
+        });
+      }
 
       const payload = (await response.json()) as {
+        status?: string;
+        jobId?: string;
         text?: string;
         provider?: string;
         error?: { message?: string; code?: string };
       };
+
+      if (response.status === 202 && payload.jobId) {
+        onResultChange({
+          ...DEFAULT_STT_RESULT,
+          loading: true,
+          provider: payload.provider ?? providerId,
+          statusText: "Audio submitted. Checking transcription status...",
+        });
+        const result = await pollSttJob(
+          payload.jobId,
+          payload.provider ?? providerId,
+        );
+        onResultChange({
+          loading: false,
+          error: null,
+          text: result.text,
+          provider: result.provider,
+        });
+        return;
+      }
 
       if (!response.ok) {
         const code = payload.error?.code ? `${payload.error.code}: ` : "";
@@ -153,8 +318,12 @@ export function SttPanel({
           onChange={(event) => setProviderId(event.target.value as SttProviderId)}
           value={providerId}
         >
-          {availableProviders.map((provider) => (
-            <option key={provider.id} value={provider.id}>
+          {selectableProviders.map((provider) => (
+            <option
+              disabled={!provider.available}
+              key={provider.id}
+              value={provider.id}
+            >
               {provider.label}
               {provider.id === sttStatus.defaultProvider ? " (Default)" : ""}
             </option>

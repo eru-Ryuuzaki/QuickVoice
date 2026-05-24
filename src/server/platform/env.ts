@@ -18,8 +18,7 @@ export type AppConfig = {
   volcengineSttEndpoint: string;
   cosSecretId: string;
   cosSecretKey: string;
-  cosBucket: string;
-  cosRegion: string;
+  cosEndpoint: string;
   cosPublicBaseUrl: string;
   cosSttPrefix: string;
   cosSttUrlTtlSeconds: number;
@@ -49,10 +48,9 @@ type ConfigInput = {
   VOLCENGINE_STT_MODEL?: string;
   VOLCENGINE_STT_MODEL_OPTIONS?: string;
   VOLCENGINE_STT_ENDPOINT?: string;
+  COS_ENDPOINT?: string;
   COS_SECRET_ID?: string;
   COS_SECRET_KEY?: string;
-  COS_BUCKET?: string;
-  COS_REGION?: string;
   COS_PUBLIC_BASE_URL?: string;
   COS_STT_PREFIX?: string;
   COS_STT_URL_TTL_SECONDS?: string;
@@ -211,8 +209,9 @@ export function loadConfig(input?: ConfigInput): AppConfig {
   );
   const cosSecretId = parseOptionalString(source.COS_SECRET_ID);
   const cosSecretKey = parseOptionalString(source.COS_SECRET_KEY);
-  const cosBucket = parseOptionalString(source.COS_BUCKET);
-  const cosRegion = parseOptionalString(source.COS_REGION);
+  const cosEndpoint = trimTrailingSlashes(
+    parseOptionalString(source.COS_ENDPOINT),
+  );
   const cosPublicBaseUrl = trimTrailingSlashes(
     parseOptionalString(source.COS_PUBLIC_BASE_URL),
   );
@@ -244,17 +243,14 @@ export function loadConfig(input?: ConfigInput): AppConfig {
     ),
     cosSecretId,
     cosSecretKey,
-    cosBucket,
-    cosRegion,
+    cosEndpoint,
     cosPublicBaseUrl,
     cosSttPrefix,
     cosSttUrlTtlSeconds: parsePositiveInteger(
       source.COS_STT_URL_TTL_SECONDS,
       DEFAULT_COS_STT_URL_TTL_SECONDS,
     ),
-    cosConfigured: Boolean(
-      cosSecretId && cosSecretKey && cosBucket && cosRegion,
-    ),
+    cosConfigured: Boolean(cosSecretId && cosSecretKey && cosEndpoint),
     voskWsUrl: parseOptionalString(
       source.VOSK_STT_WS_URL,
       DEFAULT_VOSK_STT_WS_URL,

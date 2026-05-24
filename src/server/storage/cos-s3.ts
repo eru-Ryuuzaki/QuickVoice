@@ -10,23 +10,29 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { loadConfig, type AppConfig } from "@/server/platform/env";
 import { AppError } from "@/server/platform/errors";
-import type { AudioObjectStorage } from "@/server/storage/audio-object-storage";
+import type {
+  AudioObjectStorage,
+  AudioUploadObjectMeta,
+} from "@/server/storage/audio-object-storage";
 
 type CosS3AudioStorageOptions = {
   config?: Pick<
     AppConfig,
     | "cosSecretId"
     | "cosSecretKey"
-    | "cosBucket"
-    | "cosRegion"
+    | "cosEndpoint"
     | "cosPublicBaseUrl"
     | "cosSttPrefix"
     | "cosSttUrlTtlSeconds"
     | "cosConfigured"
   >;
-  createKey?: (file: File) => string;
+  createKey?: (file: AudioUploadObjectMeta) => string;
   putObject?: (input: PutObjectCommandInput) => Promise<unknown>;
   createPresignedUrl?: (key: string) => Promise<string>;
+  createPresignedPutUrl?: (
+    key: string,
+    contentType: string,
+  ) => Promise<string>;
 };
 
 function getExtension(fileName: string) {
@@ -34,11 +40,36 @@ function getExtension(fileName: string) {
   return extension || "bin";
 }
 
+function toAudioObjectMeta(file: File): AudioUploadObjectMeta {
+  return {
+    name: file.name,
+    type: file.type,
+  };
+}
+
 function encodeObjectKey(key: string) {
   return key
     .split("/")
     .map((segment) => encodeURIComponent(segment))
     .join("/");
+}
+
+function parseCosEndpoint(endpoint: string) {
+  try {
+    const url = new URL(endpoint);
+    const [bucket, marker, region] = url.hostname.split(".");
+    if (!bucket || marker !== "cos" || !region) {
+      return { bucket: "", region: "auto" };
+    }
+
+    return {
+      bucket,
+      region,
+      serviceEndpoint: `${url.protocol}//cos.${region}.myqcloud.com`,
+    };
+  } catch {
+    return { bucket: "", region: "auto", serviceEndpoint: endpoint };
+  }
 }
 
 async function readFileBuffer(file: File) {
@@ -53,12 +84,13 @@ export function createCosS3AudioStorage(
   options: CosS3AudioStorageOptions = {},
 ): AudioObjectStorage {
   const config = options.config ?? loadConfig();
+  const cosEndpoint = parseCosEndpoint(config.cosEndpoint);
   let client: S3Client | undefined;
   const getClient = () => {
     client ??= new S3Client({
-      region: config.cosRegion,
-      endpoint: `https://cos.${config.cosRegion}.myqcloud.com`,
-      forcePathStyle: true,
+      region: cosEndpoint.region,
+      endpoint: cosEndpoint.serviceEndpoint,
+      forcePathStyle: false,
       credentials: {
         accessKeyId: config.cosSecretId,
         secretAccessKey: config.cosSecretKey,
@@ -76,18 +108,30 @@ export function createCosS3AudioStorage(
       getSignedUrl(
         getClient(),
         new GetObjectCommand({
-          Bucket: config.cosBucket,
+          Bucket: cosEndpoint.bucket,
           Key: key,
+        }),
+        { expiresIn: config.cosSttUrlTtlSeconds },
+      ));
+  const createPresignedPutUrl =
+    options.createPresignedPutUrl ??
+    ((key: string, contentType: string) =>
+      getSignedUrl(
+        getClient(),
+        new PutObjectCommand({
+          Bucket: cosEndpoint.bucket,
+          Key: key,
+          ContentType: contentType,
         }),
         { expiresIn: config.cosSttUrlTtlSeconds },
       ));
   const createKey =
     options.createKey ??
-    ((file: File) =>
+    ((file: AudioUploadObjectMeta) =>
       `${config.cosSttPrefix}/${randomUUID()}.${getExtension(file.name)}`);
 
   return {
-    async uploadAudio(file) {
+    async createUploadUrl(file) {
       if (!config.cosConfigured) {
         throw new AppError(
           "PROVIDER_UNAVAILABLE",
@@ -97,11 +141,32 @@ export function createCosS3AudioStorage(
       }
 
       const key = createKey(file);
+      const uploadUrl = await createPresignedPutUrl(
+        key,
+        file.type || "application/octet-stream",
+      );
+      const url = config.cosPublicBaseUrl
+        ? `${config.cosPublicBaseUrl}/${encodeObjectKey(key)}`
+        : await createPresignedUrl(key);
+
+      return { key, uploadUrl, url };
+    },
+    async uploadAudio(file) {
+      if (!config.cosConfigured) {
+        throw new AppError(
+          "PROVIDER_UNAVAILABLE",
+          "COS object storage is not configured.",
+          { status: 503 },
+        );
+      }
+
+      const fileMeta = toAudioObjectMeta(file);
+      const key = createKey(fileMeta);
       await putObject({
-        Bucket: config.cosBucket,
+        Bucket: cosEndpoint.bucket,
         Key: key,
         Body: await readFileBuffer(file),
-        ContentType: file.type || "application/octet-stream",
+        ContentType: fileMeta.type || "application/octet-stream",
       });
 
       if (config.cosPublicBaseUrl) {

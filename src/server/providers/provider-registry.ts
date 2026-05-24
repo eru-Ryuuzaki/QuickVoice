@@ -19,10 +19,9 @@ type RegistryConfigInput = Partial<{
   VOLCENGINE_STT_API_KEY: string;
   VOLCENGINE_STT_MODEL: string;
   VOLCENGINE_STT_MODEL_OPTIONS: string;
+  COS_ENDPOINT: string;
   COS_SECRET_ID: string;
   COS_SECRET_KEY: string;
-  COS_BUCKET: string;
-  COS_REGION: string;
   COS_PUBLIC_BASE_URL: string;
   COS_STT_PREFIX: string;
   COS_STT_URL_TTL_SECONDS: string;

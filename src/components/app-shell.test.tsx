@@ -91,13 +91,41 @@ test("renders top rail, activity rail, and two-pane work area", async () => {
 
 test("does not render Send To TTS actions in STT results", async () => {
   const user = userEvent.setup();
-  const fetchMock = vi.fn(async (input: unknown) => {
+  const fetchMock = vi.fn(async (input: unknown, init?: RequestInit) => {
     const url = String(input);
     if (url.endsWith("/api/voices")) {
       return new Response(JSON.stringify({ groups: [] }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
+    }
+
+    if (url === "https://cos.example.test/upload") {
+      return new Response(null, { status: 200 });
+    }
+
+    const body = init?.body as FormData | undefined;
+    if (body?.get("intent") === "upload") {
+      expect(body.get("file")).toBeNull();
+      expect(body.get("fileName")).toBe("voice.mp3");
+      expect(body.get("contentType")).toBe("audio/mpeg");
+      expect(body.get("size")).toBe("3");
+      return new Response(
+        JSON.stringify({
+          uploadUrl: "https://cos.example.test/upload",
+          audioUrl: "https://cos.example.test/read",
+          provider: "volcengine",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (body?.get("intent") === "submit") {
+      expect(body.get("file")).toBeNull();
+      expect(body.get("audioUrl")).toBe("https://cos.example.test/read");
     }
 
     return new Response(

@@ -52,9 +52,10 @@ export function TtsForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const currentAudioUrl = useRef<string | null>(null);
 
+  const selectableProviders = ttsStatus.providers;
   const availableProviders = useMemo(() => {
-    return ttsStatus.providers.filter((provider) => provider.available);
-  }, [ttsStatus.providers]);
+    return selectableProviders.filter((provider) => provider.available);
+  }, [selectableProviders]);
 
   const resolvedProvider = useMemo(() => {
     return (
@@ -293,8 +294,12 @@ export function TtsForm({
             }
             value={providerId}
           >
-            {availableProviders.map((provider) => (
-              <option key={provider.id} value={provider.id}>
+            {selectableProviders.map((provider) => (
+              <option
+                disabled={!provider.available}
+                key={provider.id}
+                value={provider.id}
+              >
                 {provider.label}
                 {provider.id === ttsStatus.defaultProvider ? " (Default)" : ""}
               </option>

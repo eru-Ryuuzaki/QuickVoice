@@ -16,8 +16,7 @@ test("defaults to the MVP provider stack", () => {
   expect(config.volcengineSttModelOptions).toEqual(["volc.seedasr.auc"]);
   expect(config.cosSecretId).toBe("");
   expect(config.cosSecretKey).toBe("");
-  expect(config.cosBucket).toBe("");
-  expect(config.cosRegion).toBe("");
+  expect(config.cosEndpoint).toBe("");
   expect(config.cosPublicBaseUrl).toBe("");
   expect(config.cosSttPrefix).toBe("quickvoice/stt");
   expect(config.cosSttUrlTtlSeconds).toBe(3600);
@@ -81,8 +80,7 @@ test("parses manual model defaults and endpoint overrides", () => {
     OPENAI_SUMMARY_ENDPOINT: " https://summary.example.test ",
     COS_SECRET_ID: " secret-id ",
     COS_SECRET_KEY: " secret-key ",
-    COS_BUCKET: " quickvoice-1250000000 ",
-    COS_REGION: " ap-shanghai ",
+    COS_ENDPOINT: " https://quickvoice-1250000000.cos.ap-shanghai.myqcloud.com/ ",
     COS_PUBLIC_BASE_URL: " https://cdn.example.test/audio/ ",
     COS_STT_PREFIX: " speech/uploads/ ",
     COS_STT_URL_TTL_SECONDS: " 900 ",
@@ -122,8 +120,9 @@ test("parses manual model defaults and endpoint overrides", () => {
   expect(config.openaiSummaryEndpoint).toBe("https://summary.example.test");
   expect(config.cosSecretId).toBe("secret-id");
   expect(config.cosSecretKey).toBe("secret-key");
-  expect(config.cosBucket).toBe("quickvoice-1250000000");
-  expect(config.cosRegion).toBe("ap-shanghai");
+  expect(config.cosEndpoint).toBe(
+    "https://quickvoice-1250000000.cos.ap-shanghai.myqcloud.com",
+  );
   expect(config.cosPublicBaseUrl).toBe("https://cdn.example.test/audio");
   expect(config.cosSttPrefix).toBe("speech/uploads");
   expect(config.cosSttUrlTtlSeconds).toBe(900);

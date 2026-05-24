@@ -2,6 +2,7 @@
 
 import { transcribeAudio } from "@/server/core/transcribe-audio";
 import { AppError, isAppError } from "@/server/platform/errors";
+import { assertAudioUpload } from "@/server/platform/files";
 import {
   createRateLimiter,
   type RateLimiter,
@@ -9,6 +10,8 @@ import {
 import { createProviderRegistry } from "@/server/providers/provider-registry";
 import { createVolcengineSttProvider } from "@/server/providers/stt/volcengine";
 import { createVoskSttProvider } from "@/server/providers/stt/vosk";
+import { createCosS3AudioStorage } from "@/server/storage/cos-s3";
+import type { AudioObjectStorage } from "@/server/storage/audio-object-storage";
 import {
   isSttProviderId,
   type PublicProviderStatus,
@@ -23,6 +26,7 @@ type SttRouteDeps = {
   limiter?: RateLimiter;
   getClientIp?: (request: Request) => string;
   getPublicStatus?: () => Promise<PublicProviderStatus>;
+  storage?: AudioObjectStorage;
 };
 
 const defaultLimiter = createRateLimiter({
@@ -60,6 +64,13 @@ async function defaultGetPublicStatus() {
 function readStringField(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function toSttSuccessResponse(result: {
+  text: string;
+  provider: string;
+}) {
+  return NextResponse.json(result, { status: 200 });
 }
 
 function toErrorResponse(error: unknown) {
@@ -113,19 +124,10 @@ export function createSttRouteHandler(deps: SttRouteDeps = {}) {
   const limiter = deps.limiter ?? defaultLimiter;
   const getClientIp = deps.getClientIp ?? defaultGetClientIp;
   const getPublicStatus = deps.getPublicStatus ?? defaultGetPublicStatus;
+  const storage = deps.storage ?? createCosS3AudioStorage();
 
   return async function POST(request: Request) {
     try {
-      const ip = getClientIp(request);
-      const limitResult = limiter.consume(ip);
-      if (!limitResult.allowed) {
-        throw new AppError(
-          "RATE_LIMITED",
-          "RATE_LIMITED: too many STT requests, please retry later",
-          { status: 429 },
-        );
-      }
-
       const publicStatus = await getPublicStatus();
       if (!publicStatus.stt.available) {
         throw new AppError(
@@ -136,6 +138,19 @@ export function createSttRouteHandler(deps: SttRouteDeps = {}) {
       }
 
       const formData = await request.formData();
+      const jobId = readStringField(formData, "jobId");
+      if (!jobId) {
+        const ip = getClientIp(request);
+        const limitResult = limiter.consume(ip);
+        if (!limitResult.allowed) {
+          throw new AppError(
+            "RATE_LIMITED",
+            "RATE_LIMITED: too many STT requests, please retry later",
+            { status: 429 },
+          );
+        }
+      }
+
       const providerId = resolveProviderId(
         readStringField(formData, "provider").toLowerCase(),
         publicStatus.stt,
@@ -169,6 +184,91 @@ export function createSttRouteHandler(deps: SttRouteDeps = {}) {
         );
       }
 
+      const model =
+        readStringField(formData, "model") ||
+        (providerId === "volcengine" ? publicStatus.stt.defaultModel : "");
+      const intent = readStringField(formData, "intent").toLowerCase();
+
+      if (jobId) {
+        if (!provider.query) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            `VALIDATION_ERROR: STT provider \"${providerId}\" does not support jobs`,
+            { status: 400 },
+          );
+        }
+
+        const status = await provider.query(jobId);
+        if (status.status === "completed") {
+          return toSttSuccessResponse({
+            text: status.text,
+            provider: provider.id,
+          });
+        }
+
+        return NextResponse.json(
+          {
+            status: status.status,
+            provider: provider.id,
+            jobId,
+          },
+          { status: 202 },
+        );
+      }
+
+      if (provider.submit && provider.query) {
+        const audioUrl = readStringField(formData, "audioUrl");
+        if (intent === "upload") {
+          if (!storage.createUploadUrl) {
+            throw new AppError(
+              "VALIDATION_ERROR",
+              "VALIDATION_ERROR: direct STT upload is not supported",
+              { status: 400 },
+            );
+          }
+
+          const uploadMeta = assertAudioUpload({
+            name: readStringField(formData, "fileName"),
+            type: readStringField(formData, "contentType"),
+            size: Number(readStringField(formData, "size")),
+          });
+          const upload = await storage.createUploadUrl(uploadMeta);
+          return NextResponse.json(
+            {
+              key: upload.key,
+              uploadUrl: upload.uploadUrl,
+              audioUrl: upload.url,
+              provider: provider.id,
+            },
+            { status: 200 },
+          );
+        }
+
+        if (intent === "submit") {
+          if (!audioUrl) {
+            throw new AppError(
+              "VALIDATION_ERROR",
+              "VALIDATION_ERROR: audio URL is required",
+              { status: 400 },
+            );
+          }
+
+          const submitted = await provider.submit({
+            audioUrl,
+            model,
+          });
+
+          return NextResponse.json(
+            {
+              status: "submitted",
+              provider: provider.id,
+              jobId: submitted.jobId,
+            },
+            { status: 202 },
+          );
+        }
+      }
+
       const file = formData.get("file");
       if (!(file instanceof File)) {
         throw new AppError(
@@ -178,12 +278,26 @@ export function createSttRouteHandler(deps: SttRouteDeps = {}) {
         );
       }
 
+      if (provider.submit && provider.query) {
+        const submitted = await provider.submit({
+          file,
+          model,
+        });
+
+        return NextResponse.json(
+          {
+            status: "submitted",
+            provider: provider.id,
+            jobId: submitted.jobId,
+          },
+          { status: 202 },
+        );
+      }
+
       const result = await transcribeAudio(
         {
           file,
-          model:
-            readStringField(formData, "model") ||
-            (providerId === "volcengine" ? publicStatus.stt.defaultModel : ""),
+          model,
         },
         {
           provider,
@@ -191,13 +305,10 @@ export function createSttRouteHandler(deps: SttRouteDeps = {}) {
         },
       );
 
-      return NextResponse.json(
-        {
-          text: result.text,
-          provider: provider.id,
-        },
-        { status: 200 },
-      );
+      return toSttSuccessResponse({
+        text: result.text,
+        provider: provider.id,
+      });
     } catch (error) {
       return toErrorResponse(error);
     }

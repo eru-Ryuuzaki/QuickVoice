@@ -13,7 +13,7 @@ export type UploadFileMeta = {
 };
 
 const MAX_TEXT_UPLOAD_BYTES = 256 * 1024;
-const MAX_AUDIO_UPLOAD_BYTES = 25 * 1024 * 1024;
+const MAX_AUDIO_UPLOAD_BYTES = 1024 * 1024 * 1024;
 
 function throwValidation(message: string) {
   throw new AppError("VALIDATION_ERROR", `VALIDATION_ERROR: ${message}`);

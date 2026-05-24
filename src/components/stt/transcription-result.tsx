@@ -3,6 +3,7 @@ export type SttResultState = {
   error: string | null;
   text: string;
   provider: string | null;
+  statusText?: string;
 };
 
 type TranscriptionResultProps = {
@@ -28,7 +29,7 @@ export function TranscriptionResult({
   if (result.loading) {
     return (
       <div className="rounded border border-[var(--line)] bg-[var(--surface-2)] p-4 text-sm text-[var(--muted)]">
-        Transcribing audio...
+        {result.statusText ?? "Transcribing audio..."}
       </div>
     );
   }

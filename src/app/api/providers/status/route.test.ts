@@ -9,8 +9,7 @@ test("returns provider status for public UI", async () => {
     VOLCENGINE_STT_API_KEY: process.env.VOLCENGINE_STT_API_KEY,
     COS_SECRET_ID: process.env.COS_SECRET_ID,
     COS_SECRET_KEY: process.env.COS_SECRET_KEY,
-    COS_BUCKET: process.env.COS_BUCKET,
-    COS_REGION: process.env.COS_REGION,
+    COS_ENDPOINT: process.env.COS_ENDPOINT,
     MINIMAX_TTS_API_KEY: process.env.MINIMAX_TTS_API_KEY,
     OPENAI_SUMMARY_API_KEY: process.env.OPENAI_SUMMARY_API_KEY,
     OPENAI_SUMMARY_MODEL_OPTIONS: process.env.OPENAI_SUMMARY_MODEL_OPTIONS,
@@ -23,8 +22,8 @@ test("returns provider status for public UI", async () => {
   process.env.VOLCENGINE_STT_API_KEY = "api-key";
   process.env.COS_SECRET_ID = "secret-id";
   process.env.COS_SECRET_KEY = "secret-key";
-  process.env.COS_BUCKET = "quickvoice-1250000000";
-  process.env.COS_REGION = "ap-shanghai";
+  process.env.COS_ENDPOINT =
+    "https://quickvoice-1250000000.cos.ap-shanghai.myqcloud.com";
   process.env.MINIMAX_TTS_API_KEY = "minimax";
   process.env.OPENAI_SUMMARY_API_KEY = "openai";
   process.env.OPENAI_SUMMARY_MODEL_OPTIONS = "gpt-5.5,gpt-5.5-mini";
