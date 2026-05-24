@@ -1,4 +1,6 @@
 import { loadConfig } from "@/server/platform/env";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
 test("defaults to the MVP provider stack", () => {
   const config = loadConfig({});
@@ -134,4 +136,16 @@ test("uses the fallback COS URL TTL for invalid values", () => {
   });
 
   expect(config.cosSttUrlTtlSeconds).toBe(3600);
+});
+
+test(".env.example documents the Volcengine submit endpoint", () => {
+  const envExample = readFileSync(
+    path.join(process.cwd(), ".env.example"),
+    "utf8",
+  );
+
+  expect(envExample).toContain(
+    "VOLCENGINE_STT_ENDPOINT=https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit",
+  );
+  expect(envExample).not.toContain("/recognize/flash");
 });

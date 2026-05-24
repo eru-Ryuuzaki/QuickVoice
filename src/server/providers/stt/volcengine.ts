@@ -158,7 +158,8 @@ export function createVolcengineSttProvider(
       const submitStatus = getTaskStatus(submitResponse);
       if (
         submitStatus.statusCode &&
-        submitStatus.statusCode !== VOLCENGINE_STATUS_SUCCESS
+        submitStatus.statusCode !== VOLCENGINE_STATUS_SUCCESS &&
+        !VOLCENGINE_PENDING_STATUSES.has(submitStatus.statusCode)
       ) {
         throwTaskStatusError(
           submitStatus.statusCode,

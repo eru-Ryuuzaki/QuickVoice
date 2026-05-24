@@ -212,6 +212,41 @@ test("maps Volcengine submit task status failures", async () => {
   expect(fetchImpl).toHaveBeenCalledTimes(1);
 });
 
+test("continues polling when Volcengine submit returns a pending status", async () => {
+  const fetchImpl = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "X-Api-Status-Code": "20000001" },
+      }),
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ result: { text: "submit pending done" } }), {
+        status: 200,
+        headers: { "X-Api-Status-Code": "20000000" },
+      }),
+    ) as unknown as typeof fetch;
+
+  const provider = createVolcengineSttProvider({
+    apiKey: "api-key",
+    resourceId: "volc.seedasr.auc",
+    submitEndpoint: "https://example.test/submit",
+    queryEndpoint: "https://example.test/query",
+    storage: createStorage(),
+    fetchImpl,
+    sleep: async () => undefined,
+  });
+
+  const result = await provider.transcribe({
+    file: createAudioFile(new Uint8Array([1])),
+    model: "",
+  });
+
+  expect(result.text).toBe("submit pending done");
+  expect(fetchImpl).toHaveBeenCalledTimes(2);
+});
+
 test("continues polling Volcengine pending and queued task statuses", async () => {
   const fetchImpl = vi
     .fn()
