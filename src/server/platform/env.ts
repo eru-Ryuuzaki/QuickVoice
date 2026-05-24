@@ -76,7 +76,7 @@ type ConfigInput = {
 
 const DEFAULT_VOSK_STT_WS_URL = "ws://vosk-cn:2700";
 const DEFAULT_VOLCENGINE_STT_ENDPOINT =
-  "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash";
+  "https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit";
 const DEFAULT_VOLCENGINE_STT_MODEL = "volc.seedasr.auc";
 const DEFAULT_COS_STT_PREFIX = "quickvoice/stt";
 const DEFAULT_COS_STT_URL_TTL_SECONDS = 3600;
