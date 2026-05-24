@@ -85,6 +85,8 @@ test("uploads audio to COS and submits the audio URL to Volcengine", async () =>
       }),
     }),
   );
+  const [, queryOptions] = fetchImpl.mock.calls[1] ?? [];
+  expect(JSON.parse(String(queryOptions?.body))).toEqual({});
 });
 
 test("uses request model as Volcengine resource id when supplied", async () => {
@@ -127,6 +129,125 @@ test("maps Volcengine submit failures", async () => {
   const fetchImpl = vi.fn(
     async () => new Response("bad", { status: 503 }),
   ) as typeof fetch;
+  const provider = createVolcengineSttProvider({
+    apiKey: "api-key",
+    resourceId: "volc.seedasr.auc",
+    submitEndpoint: "https://example.test/submit",
+    queryEndpoint: "https://example.test/query",
+    storage: createStorage(),
+    fetchImpl,
+    sleep: async () => undefined,
+  });
+
+  await expect(
+    provider.transcribe({
+      file: createAudioFile(new Uint8Array([1])),
+      model: "",
+    }),
+  ).rejects.toMatchObject({
+    code: "PROVIDER_UNAVAILABLE",
+  });
+});
+
+test("maps Volcengine submit task status failures", async () => {
+  const fetchImpl = vi.fn(
+    async () =>
+      new Response(JSON.stringify({}), {
+        status: 200,
+        headers: {
+          "X-Api-Status-Code": "45000001",
+          "X-Api-Message": "bad request",
+        },
+      }),
+  ) as typeof fetch;
+  const provider = createVolcengineSttProvider({
+    apiKey: "api-key",
+    resourceId: "volc.seedasr.auc",
+    submitEndpoint: "https://example.test/submit",
+    queryEndpoint: "https://example.test/query",
+    storage: createStorage(),
+    fetchImpl,
+    sleep: async () => undefined,
+  });
+
+  await expect(
+    provider.transcribe({
+      file: createAudioFile(new Uint8Array([1])),
+      model: "",
+    }),
+  ).rejects.toMatchObject({
+    code: "PROVIDER_UNAVAILABLE",
+  });
+  expect(fetchImpl).toHaveBeenCalledTimes(1);
+});
+
+test("continues polling Volcengine pending and queued task statuses", async () => {
+  const fetchImpl = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "X-Api-Status-Code": "20000000" },
+      }),
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "X-Api-Status-Code": "20000001" },
+      }),
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "X-Api-Status-Code": "20000002" },
+      }),
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ result: { text: "done" } }), {
+        status: 200,
+        headers: { "X-Api-Status-Code": "20000000" },
+      }),
+    ) as unknown as typeof fetch;
+  const sleep = vi.fn(async () => undefined);
+  const provider = createVolcengineSttProvider({
+    apiKey: "api-key",
+    resourceId: "volc.seedasr.auc",
+    submitEndpoint: "https://example.test/submit",
+    queryEndpoint: "https://example.test/query",
+    storage: createStorage(),
+    fetchImpl,
+    sleep,
+    maxPollAttempts: 3,
+  });
+
+  const result = await provider.transcribe({
+    file: createAudioFile(new Uint8Array([1])),
+    model: "",
+  });
+
+  expect(result.text).toBe("done");
+  expect(fetchImpl).toHaveBeenCalledTimes(4);
+  expect(sleep).toHaveBeenCalledTimes(2);
+});
+
+test("maps Volcengine query task status failures", async () => {
+  const fetchImpl = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "X-Api-Status-Code": "20000000" },
+      }),
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({}), {
+        status: 200,
+        headers: {
+          "X-Api-Status-Code": "45000151",
+          "X-Api-Message": "format error",
+        },
+      }),
+    ) as unknown as typeof fetch;
   const provider = createVolcengineSttProvider({
     apiKey: "api-key",
     resourceId: "volc.seedasr.auc",

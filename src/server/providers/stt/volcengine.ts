@@ -25,6 +25,13 @@ type VolcenginePayload = {
 
 const DEFAULT_MAX_POLL_ATTEMPTS = 20;
 const DEFAULT_POLL_INTERVAL_MS = 1500;
+const VOLCENGINE_STATUS_SUCCESS = "20000000";
+const VOLCENGINE_STATUS_PROCESSING = "20000001";
+const VOLCENGINE_STATUS_QUEUED = "20000002";
+const VOLCENGINE_PENDING_STATUSES = new Set([
+  VOLCENGINE_STATUS_PROCESSING,
+  VOLCENGINE_STATUS_QUEUED,
+]);
 
 const defaultSleep = (ms: number) =>
   new Promise<void>((resolve) => {
@@ -58,6 +65,25 @@ async function throwResponseError(response: Response) {
   throw new AppError(code, message, {
     status: response.status === 429 ? 429 : 503,
     details: body,
+  });
+}
+
+function getTaskStatus(response: Response) {
+  const statusCode = response.headers.get("X-Api-Status-Code")?.trim() || "";
+  const statusMessage = response.headers.get("X-Api-Message")?.trim() || "";
+  return { statusCode, statusMessage };
+}
+
+function throwTaskStatusError(
+  statusCode: string,
+  statusMessage: string,
+): never {
+  const message = statusMessage
+    ? `PROVIDER_UNAVAILABLE: Volcengine STT task failed (${statusCode}) ${statusMessage}`
+    : `PROVIDER_UNAVAILABLE: Volcengine STT task failed (${statusCode})`;
+  throw new AppError("PROVIDER_UNAVAILABLE", message, {
+    status: 503,
+    details: { statusCode, statusMessage },
   });
 }
 
@@ -125,6 +151,16 @@ export function createVolcengineSttProvider(
       if (!submitResponse.ok) {
         await throwResponseError(submitResponse);
       }
+      const submitStatus = getTaskStatus(submitResponse);
+      if (
+        submitStatus.statusCode &&
+        submitStatus.statusCode !== VOLCENGINE_STATUS_SUCCESS
+      ) {
+        throwTaskStatusError(
+          submitStatus.statusCode,
+          submitStatus.statusMessage,
+        );
+      }
 
       let lastPayload: VolcenginePayload = {};
       for (let attempt = 0; attempt < maxPollAttempts; attempt++) {
@@ -141,15 +177,24 @@ export function createVolcengineSttProvider(
             "X-Api-Request-Id": requestId,
             "X-Api-Sequence": "-1",
           },
-          body: JSON.stringify({
-            request: {
-              request_id: requestId,
-            },
-          }),
+          body: JSON.stringify({}),
         });
 
         if (!queryResponse.ok) {
           await throwResponseError(queryResponse);
+        }
+        const queryStatus = getTaskStatus(queryResponse);
+        if (VOLCENGINE_PENDING_STATUSES.has(queryStatus.statusCode)) {
+          continue;
+        }
+        if (
+          queryStatus.statusCode &&
+          queryStatus.statusCode !== VOLCENGINE_STATUS_SUCCESS
+        ) {
+          throwTaskStatusError(
+            queryStatus.statusCode,
+            queryStatus.statusMessage,
+          );
         }
 
         lastPayload = await readJsonPayload(queryResponse);
