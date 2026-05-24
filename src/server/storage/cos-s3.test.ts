@@ -44,6 +44,29 @@ test("uploads audio to COS and returns a public base URL when configured", async
   );
 });
 
+test("encodes public URL object key path segments", async () => {
+  const storage = createCosS3AudioStorage({
+    config: {
+      cosSecretId: "secret-id",
+      cosSecretKey: "secret-key",
+      cosBucket: "quickvoice-1250000000",
+      cosRegion: "ap-shanghai",
+      cosPublicBaseUrl: "https://cdn.example.test/audio",
+      cosSttPrefix: "quickvoice/stt",
+      cosSttUrlTtlSeconds: 3600,
+      cosConfigured: true,
+    },
+    createKey: () => "quickvoice/stt/folder name/audio?#.mp3",
+    putObject: vi.fn(async () => undefined),
+  });
+
+  const result = await storage.uploadAudio(createAudioFile());
+
+  expect(result.url).toBe(
+    "https://cdn.example.test/audio/quickvoice/stt/folder%20name/audio%3F%23.mp3",
+  );
+});
+
 test("falls back to a presigned URL when no public base URL is configured", async () => {
   const storage = createCosS3AudioStorage({
     config: {

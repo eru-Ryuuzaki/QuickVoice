@@ -34,6 +34,13 @@ function getExtension(fileName: string) {
   return extension || "bin";
 }
 
+function encodeObjectKey(key: string) {
+  return key
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+}
+
 async function readFileBuffer(file: File) {
   if (typeof file.arrayBuffer === "function") {
     return Buffer.from(await file.arrayBuffer());
@@ -100,7 +107,7 @@ export function createCosS3AudioStorage(
       if (config.cosPublicBaseUrl) {
         return {
           key,
-          url: `${config.cosPublicBaseUrl}/${encodeURI(key)}`,
+          url: `${config.cosPublicBaseUrl}/${encodeObjectKey(key)}`,
         };
       }
 
