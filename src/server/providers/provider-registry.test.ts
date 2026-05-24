@@ -142,6 +142,10 @@ test("does not require legacy Volcengine AppKey or Secret fields", async () => {
 test("marks Volcengine unconfigured when COS config is incomplete", async () => {
   const registry = createProviderRegistry({
     VOLCENGINE_STT_API_KEY: "api-key",
+    COS_SECRET_ID: "",
+    COS_SECRET_KEY: "",
+    COS_BUCKET: "",
+    COS_REGION: "",
     VOSK_STT_WS_URL: "   ",
     MINIMAX_TTS_API_KEY: "minimax",
   });

@@ -7,6 +7,10 @@ test("returns provider status for public UI", async () => {
     MINIMAX_TTS_ENABLED: process.env.MINIMAX_TTS_ENABLED,
     MICROSOFT_TTS_ENABLED: process.env.MICROSOFT_TTS_ENABLED,
     VOLCENGINE_STT_API_KEY: process.env.VOLCENGINE_STT_API_KEY,
+    COS_SECRET_ID: process.env.COS_SECRET_ID,
+    COS_SECRET_KEY: process.env.COS_SECRET_KEY,
+    COS_BUCKET: process.env.COS_BUCKET,
+    COS_REGION: process.env.COS_REGION,
     MINIMAX_TTS_API_KEY: process.env.MINIMAX_TTS_API_KEY,
     OPENAI_SUMMARY_API_KEY: process.env.OPENAI_SUMMARY_API_KEY,
     OPENAI_SUMMARY_MODEL_OPTIONS: process.env.OPENAI_SUMMARY_MODEL_OPTIONS,
@@ -17,6 +21,10 @@ test("returns provider status for public UI", async () => {
   process.env.MINIMAX_TTS_ENABLED = "true";
   process.env.MICROSOFT_TTS_ENABLED = "true";
   process.env.VOLCENGINE_STT_API_KEY = "api-key";
+  process.env.COS_SECRET_ID = "secret-id";
+  process.env.COS_SECRET_KEY = "secret-key";
+  process.env.COS_BUCKET = "quickvoice-1250000000";
+  process.env.COS_REGION = "ap-shanghai";
   process.env.MINIMAX_TTS_API_KEY = "minimax";
   process.env.OPENAI_SUMMARY_API_KEY = "openai";
   process.env.OPENAI_SUMMARY_MODEL_OPTIONS = "gpt-5.5,gpt-5.5-mini";
@@ -67,7 +75,7 @@ test("returns provider status for public UI", async () => {
     ]);
     expect(payload.stt.available).toBe(true);
     expect(payload.stt.defaultProvider).toBe("volcengine");
-    expect(payload.stt.defaultModel).toBe("volc.bigasr.auc_turbo");
+    expect(payload.stt.defaultModel).toBe("volc.seedasr.auc");
     expect(payload.stt.providers).toEqual([
       { id: "volcengine", label: "Volcengine", available: true },
       {
