@@ -162,6 +162,7 @@ test("maps empty final transcript to processing failure", async () => {
     storage: createStorage(),
     fetchImpl,
     sleep: async () => undefined,
+    maxPollAttempts: 1,
   });
 
   await expect(
@@ -172,4 +173,38 @@ test("maps empty final transcript to processing failure", async () => {
   ).rejects.toMatchObject({
     code: "PROCESSING_FAILED",
   });
+});
+
+test("continues polling when an intermediate query result is empty", async () => {
+  const fetchImpl = vi
+    .fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }))
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ result: { text: "" } }), { status: 200 }),
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ result: { text: "final transcript" } }), {
+        status: 200,
+      }),
+    ) as unknown as typeof fetch;
+  const sleep = vi.fn(async () => undefined);
+  const provider = createVolcengineSttProvider({
+    apiKey: "api-key",
+    resourceId: "volc.seedasr.auc",
+    submitEndpoint: "https://example.test/submit",
+    queryEndpoint: "https://example.test/query",
+    storage: createStorage(),
+    fetchImpl,
+    sleep,
+    maxPollAttempts: 2,
+  });
+
+  const result = await provider.transcribe({
+    file: createAudioFile(new Uint8Array([1])),
+    model: "",
+  });
+
+  expect(result.text).toBe("final transcript");
+  expect(fetchImpl).toHaveBeenCalledTimes(3);
+  expect(sleep).toHaveBeenCalledTimes(1);
 });

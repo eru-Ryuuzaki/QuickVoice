@@ -157,10 +157,6 @@ export function createVolcengineSttProvider(
         if (text) {
           return { text, raw: lastPayload };
         }
-
-        if (text === "") {
-          break;
-        }
       }
 
       throw new AppError(
