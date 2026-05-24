@@ -16,6 +16,14 @@ export type AppConfig = {
   volcengineSttModel: string;
   volcengineSttModelOptions: string[];
   volcengineSttEndpoint: string;
+  cosSecretId: string;
+  cosSecretKey: string;
+  cosBucket: string;
+  cosRegion: string;
+  cosPublicBaseUrl: string;
+  cosSttPrefix: string;
+  cosSttUrlTtlSeconds: number;
+  cosConfigured: boolean;
   voskWsUrl: string;
   minimaxApiKey: string;
   minimaxTtsModel: string;
@@ -41,6 +49,13 @@ type ConfigInput = {
   VOLCENGINE_STT_MODEL?: string;
   VOLCENGINE_STT_MODEL_OPTIONS?: string;
   VOLCENGINE_STT_ENDPOINT?: string;
+  COS_SECRET_ID?: string;
+  COS_SECRET_KEY?: string;
+  COS_BUCKET?: string;
+  COS_REGION?: string;
+  COS_PUBLIC_BASE_URL?: string;
+  COS_STT_PREFIX?: string;
+  COS_STT_URL_TTL_SECONDS?: string;
   VOSK_STT_ENABLED?: string;
   VOSK_STT_WS_URL?: string;
   MINIMAX_TTS_ENABLED?: string;
@@ -62,7 +77,9 @@ type ConfigInput = {
 const DEFAULT_VOSK_STT_WS_URL = "ws://vosk-cn:2700";
 const DEFAULT_VOLCENGINE_STT_ENDPOINT =
   "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash";
-const DEFAULT_VOLCENGINE_STT_MODEL = "volc.bigasr.auc_turbo";
+const DEFAULT_VOLCENGINE_STT_MODEL = "volc.seedasr.auc";
+const DEFAULT_COS_STT_PREFIX = "quickvoice/stt";
+const DEFAULT_COS_STT_URL_TTL_SECONDS = 3600;
 const DEFAULT_MINIMAX_TTS_MODEL = "speech-2.8-turbo";
 const DEFAULT_MINIMAX_TTS_ENDPOINT = "https://api.minimaxi.com/v1/t2a_v2";
 const DEFAULT_MINIMAX_TTS_VOICE_ID = "Chinese (Mandarin)_Warm_Girl";
@@ -108,6 +125,23 @@ function parseOptionalString(value: string | undefined, fallback = "") {
   }
 
   return value.trim();
+}
+
+function parsePositiveInteger(value: string | undefined, fallback: number) {
+  if (value == null || value.trim() === "") {
+    return fallback;
+  }
+
+  const parsed = Number(value.trim());
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return fallback;
+  }
+
+  return parsed;
+}
+
+function trimTrailingSlashes(value: string) {
+  return value.replace(/\/+$/, "");
 }
 
 function parseStringList(value: string | undefined, fallback: string[]) {
@@ -175,6 +209,16 @@ export function loadConfig(input?: ConfigInput): AppConfig {
     source.OPENAI_SUMMARY_MODEL,
     DEFAULT_OPENAI_SUMMARY_MODEL,
   );
+  const cosSecretId = parseOptionalString(source.COS_SECRET_ID);
+  const cosSecretKey = parseOptionalString(source.COS_SECRET_KEY);
+  const cosBucket = parseOptionalString(source.COS_BUCKET);
+  const cosRegion = parseOptionalString(source.COS_REGION);
+  const cosPublicBaseUrl = trimTrailingSlashes(
+    parseOptionalString(source.COS_PUBLIC_BASE_URL),
+  );
+  const cosSttPrefix = trimTrailingSlashes(
+    parseOptionalString(source.COS_STT_PREFIX, DEFAULT_COS_STT_PREFIX),
+  );
 
   return {
     ttsProvider: parseTtsProvider(source.TTS_PROVIDER),
@@ -197,6 +241,19 @@ export function loadConfig(input?: ConfigInput): AppConfig {
     volcengineSttEndpoint: parseString(
       source.VOLCENGINE_STT_ENDPOINT,
       DEFAULT_VOLCENGINE_STT_ENDPOINT,
+    ),
+    cosSecretId,
+    cosSecretKey,
+    cosBucket,
+    cosRegion,
+    cosPublicBaseUrl,
+    cosSttPrefix,
+    cosSttUrlTtlSeconds: parsePositiveInteger(
+      source.COS_STT_URL_TTL_SECONDS,
+      DEFAULT_COS_STT_URL_TTL_SECONDS,
+    ),
+    cosConfigured: Boolean(
+      cosSecretId && cosSecretKey && cosBucket && cosRegion,
     ),
     voskWsUrl: parseOptionalString(
       source.VOSK_STT_WS_URL,

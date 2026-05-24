@@ -10,8 +10,16 @@ test("defaults to the MVP provider stack", () => {
   expect(config.enableTtsMinimax).toBe(true);
   expect(config.enableTtsMicrosoftUnofficial).toBe(true);
   expect(config).not.toHaveProperty("enableStt");
-  expect(config.volcengineSttModel).toBe("volc.bigasr.auc_turbo");
-  expect(config.volcengineSttModelOptions).toEqual(["volc.bigasr.auc_turbo"]);
+  expect(config.volcengineSttModel).toBe("volc.seedasr.auc");
+  expect(config.volcengineSttModelOptions).toEqual(["volc.seedasr.auc"]);
+  expect(config.cosSecretId).toBe("");
+  expect(config.cosSecretKey).toBe("");
+  expect(config.cosBucket).toBe("");
+  expect(config.cosRegion).toBe("");
+  expect(config.cosPublicBaseUrl).toBe("");
+  expect(config.cosSttPrefix).toBe("quickvoice/stt");
+  expect(config.cosSttUrlTtlSeconds).toBe(3600);
+  expect(config.cosConfigured).toBe(false);
   expect(config.minimaxTtsModel).toBe("speech-2.8-turbo");
   expect(config.minimaxTtsModelOptions).toContain("speech-2.8-turbo");
   expect(config.minimaxTtsVoiceId).toBe("Chinese (Mandarin)_Warm_Girl");
@@ -69,6 +77,13 @@ test("parses manual model defaults and endpoint overrides", () => {
     OPENAI_SUMMARY_MODEL: " gpt-custom ",
     OPENAI_SUMMARY_MODEL_OPTIONS: " gpt-custom, gpt-alt ",
     OPENAI_SUMMARY_ENDPOINT: " https://summary.example.test ",
+    COS_SECRET_ID: " secret-id ",
+    COS_SECRET_KEY: " secret-key ",
+    COS_BUCKET: " quickvoice-1250000000 ",
+    COS_REGION: " ap-shanghai ",
+    COS_PUBLIC_BASE_URL: " https://cdn.example.test/audio/ ",
+    COS_STT_PREFIX: " speech/uploads/ ",
+    COS_STT_URL_TTL_SECONDS: " 900 ",
   });
 
   expect(config.volcengineSttModel).toBe("custom-stt-model");
@@ -103,4 +118,20 @@ test("parses manual model defaults and endpoint overrides", () => {
   expect(config.openaiSummaryModel).toBe("gpt-custom");
   expect(config.openaiSummaryModelOptions).toEqual(["gpt-custom", "gpt-alt"]);
   expect(config.openaiSummaryEndpoint).toBe("https://summary.example.test");
+  expect(config.cosSecretId).toBe("secret-id");
+  expect(config.cosSecretKey).toBe("secret-key");
+  expect(config.cosBucket).toBe("quickvoice-1250000000");
+  expect(config.cosRegion).toBe("ap-shanghai");
+  expect(config.cosPublicBaseUrl).toBe("https://cdn.example.test/audio");
+  expect(config.cosSttPrefix).toBe("speech/uploads");
+  expect(config.cosSttUrlTtlSeconds).toBe(900);
+  expect(config.cosConfigured).toBe(true);
+});
+
+test("uses the fallback COS URL TTL for invalid values", () => {
+  const config = loadConfig({
+    COS_STT_URL_TTL_SECONDS: "not-a-number",
+  });
+
+  expect(config.cosSttUrlTtlSeconds).toBe(3600);
 });
