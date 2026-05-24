@@ -3,10 +3,12 @@ import type { RateLimiter } from "@/server/platform/rate-limit";
 import type { PublicProviderStatus, TtsProvider } from "@/server/providers/types";
 
 function createRequest(formData: FormData) {
-  return new Request("http://localhost/api/tts", {
-    method: "POST",
-    body: formData,
-  });
+  return {
+    headers: new Headers(),
+    async formData() {
+      return formData;
+    },
+  } as Request;
 }
 
 function createAllowedLimiter(): RateLimiter {

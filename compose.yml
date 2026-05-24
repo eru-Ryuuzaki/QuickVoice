@@ -3,6 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
+      args:
+        HTTP_PROXY: http://127.0.0.1:7890
+        HTTPS_PROXY: http://127.0.0.1:7890
+        http_proxy: http://127.0.0.1:7890
+        https_proxy: http://127.0.0.1:7890
     image: quickvoice:local
     container_name: quickvoice
     restart: unless-stopped

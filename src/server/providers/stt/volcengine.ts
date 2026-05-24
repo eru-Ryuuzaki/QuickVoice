@@ -332,8 +332,10 @@ export function createVolcengineSttProvider(
           continue;
         }
 
-        lastPayload = (status.raw ?? {}) as VolcenginePayload;
-        return { text: status.text, raw: status.raw };
+        if (status.status === "completed") {
+          lastPayload = (status.raw ?? {}) as VolcenginePayload;
+          return { text: status.text, raw: status.raw };
+        }
       }
 
       if (VOLCENGINE_PENDING_STATUSES.has(lastTaskStatus)) {
