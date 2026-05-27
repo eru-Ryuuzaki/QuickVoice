@@ -3,12 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      network: host
       args:
-        HTTP_PROXY: http://127.0.0.1:7890
-        HTTPS_PROXY: http://127.0.0.1:7890
-        http_proxy: http://127.0.0.1:7890
-        https_proxy: http://127.0.0.1:7890
+        HTTP_PROXY: http://host.docker.internal:7890
+        HTTPS_PROXY: http://host.docker.internal:7890
+        http_proxy: http://host.docker.internal:7890
+        https_proxy: http://host.docker.internal:7890
     image: quickvoice:local
     container_name: quickvoice
     restart: unless-stopped
@@ -20,6 +19,11 @@ services:
       NODE_ENV: production
       PORT: 4003
       HOSTNAME: 0.0.0.0
+      TZ: Asia/Shanghai
+      http_proxy: http://host.docker.internal:7890
+      https_proxy: http://host.docker.internal:7890
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4003/api/health"]
       interval: 30s

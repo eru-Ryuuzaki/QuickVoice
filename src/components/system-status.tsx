@@ -18,7 +18,7 @@ export function SystemStatus({ status }: SystemStatusProps) {
   const defaultSummaryModelLabel = status.summary.defaultModel;
 
   return (
-    <div className="flex flex-wrap gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--muted)]">
+    <div className="flex flex-wrap gap-2 rounded-md border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--muted)]">
       <span>
         TTS: {withAvailability(defaultTtsProviderLabel, status.tts.available)}
       </span>

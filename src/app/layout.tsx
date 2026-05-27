@@ -1,18 +1,6 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, JetBrains_Mono } from "next/font/google";
 
 import "./globals.css";
-
-const displayFont = Instrument_Serif({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-display",
-});
-
-const monoFont = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-body",
-});
 
 export const metadata: Metadata = {
   title: "QuickVoice",
@@ -26,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className={`${displayFont.variable} ${monoFont.variable}`}>{children}</body>
+      <body>{children}</body>
     </html>
   );
 }

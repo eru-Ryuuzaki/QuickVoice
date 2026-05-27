@@ -174,3 +174,41 @@ test("allows entering transcript text before audio transcription", async () => {
   expect(screen.getByRole("button", { name: "Summarize" })).toBeEnabled();
   expect(screen.queryByText("Upload an audio file and start transcription.")).toBeNull();
 });
+
+test("uses the warm Anthropic-inspired visual shell", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ groups: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    ),
+  );
+
+  render(<AppShell status={baseStatus} />);
+
+  const shell = screen.getByTestId("quickvoice-shell");
+  const header = screen.getByTestId("quickvoice-header");
+  const activeTab = screen.getByRole("button", { name: "Text to Speech" });
+  const activityRail = screen.getByTestId("activity-rail");
+
+  expect(shell).toHaveClass("bg-[var(--bg)]");
+  expect(header).toHaveClass("rounded-md", "bg-[var(--surface)]");
+  expect(screen.getByRole("heading", { name: "QuickVoice" })).not.toHaveClass(
+    "font-serif",
+  );
+  expect(activeTab).toHaveClass(
+    "bg-[var(--accent)]",
+    "text-[var(--accent-contrast)]",
+  );
+  expect(activeTab).not.toHaveClass("tracking-[0.08em]");
+  expect(screen.getByRole("heading", { name: "Text to Speech" })).toHaveClass(
+    "font-sans",
+  );
+  expect(activityRail.className).toContain("bg-[var(--line-strong)]");
+
+  await waitFor(() => {
+    expect(fetch).toHaveBeenCalled();
+  });
+});

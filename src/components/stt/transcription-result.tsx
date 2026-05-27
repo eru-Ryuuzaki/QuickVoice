@@ -19,7 +19,7 @@ export function TranscriptionResult({
 }: TranscriptionResultProps) {
   if (!sttAvailable) {
     return (
-      <div className="rounded border border-[var(--line)] bg-[var(--surface-2)] p-4 text-sm text-[var(--muted)]">
+      <div className="rounded-md border border-[var(--line)] bg-[var(--surface-2)] p-4 text-sm text-[var(--muted)]">
         STT is currently disabled for public access. Keep the entry point visible
         so switching providers later does not change the product structure.
       </div>
@@ -28,7 +28,7 @@ export function TranscriptionResult({
 
   if (result.loading) {
     return (
-      <div className="rounded border border-[var(--line)] bg-[var(--surface-2)] p-4 text-sm text-[var(--muted)]">
+      <div className="rounded-md border border-[var(--line)] bg-[var(--surface-2)] p-4 text-sm text-[var(--muted)]">
         {result.statusText ?? "Transcribing audio..."}
       </div>
     );
@@ -36,7 +36,7 @@ export function TranscriptionResult({
 
   if (result.error) {
     return (
-      <div className="rounded border border-[#7c2a2a] bg-[#2a1717] p-4 text-sm text-[#ffb4b4]">
+      <div className="rounded-md border border-[var(--danger-line)] bg-[var(--danger-surface)] p-4 text-sm text-[var(--danger-text)]">
         {result.error}
       </div>
     );
@@ -49,7 +49,7 @@ export function TranscriptionResult({
           Transcript
         </span>
         <textarea
-          className="h-44 w-full resize-y rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-sm leading-[1.6] text-[var(--text)] outline-none transition-colors duration-200 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] focus-visible:border-[var(--accent)]"
+          className="h-44 w-full resize-y rounded-md border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-sm leading-[1.6] text-[var(--text)] outline-none transition-colors duration-200 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] placeholder:text-[var(--muted)] focus-visible:border-[var(--accent)]"
           onChange={(event) => onTextChange(event.target.value)}
           placeholder="Enter transcript text or transcribe an audio file."
           value={result.text}
@@ -59,7 +59,7 @@ export function TranscriptionResult({
       {result.text ? (
         <div className="flex items-center gap-2">
           <button
-            className="rounded border border-[var(--line)] px-3 py-1.5 text-xs tracking-[0.08em] text-[var(--text)] transition-all duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px hover:border-[var(--accent)]/65"
+            className="inline-flex items-center rounded-md border border-[var(--line)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text)] transition-all duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px hover:border-[var(--accent)]"
             onClick={() => {
               void navigator.clipboard.writeText(result.text);
             }}

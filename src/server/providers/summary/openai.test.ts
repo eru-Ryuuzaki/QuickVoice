@@ -154,6 +154,130 @@ test("parses Responses API output array content", async () => {
   expect(result.keyPoints).toEqual(["Nested content"]);
 });
 
+test("parses chat completions message content JSON into a summary", async () => {
+  const fetchImpl = vi.fn(
+    async () =>
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  title: "DeepSeek",
+                  summary: "Parsed chat completion output",
+                  keyPoints: ["Compatible API"],
+                  actionItems: [],
+                  keywords: ["deepseek"],
+                  cleanTranscript: "clean",
+                }),
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+  ) as typeof fetch;
+
+  const provider = createOpenAiSummaryProvider({
+    apiKey: "key",
+    endpoint: "https://example.test/chat/completions",
+    fetchImpl,
+  });
+
+  const result = await provider.summarize({
+    transcript: "raw text",
+    model: "deepseek-v4-flash",
+  });
+
+  expect(result.title).toBe("DeepSeek");
+  expect(result.summary).toBe("Parsed chat completion output");
+  expect(result.model).toBe("deepseek-v4-flash");
+});
+
+test("uses chat completions request format for DeepSeek models", async () => {
+  const fetchImpl = vi.fn(
+    async () =>
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  title: "DeepSeek",
+                  summary: "Summary",
+                  keyPoints: [],
+                  actionItems: [],
+                  keywords: [],
+                  cleanTranscript: "clean",
+                }),
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+  ) as typeof fetch;
+
+  const provider = createOpenAiSummaryProvider({
+    apiKey: "key",
+    endpoint: "https://example.test/v1/responses",
+    fetchImpl,
+  });
+
+  await provider.summarize({
+    transcript: "raw text",
+    model: "deepseek-v4-flash",
+  });
+
+  const [endpoint, init] = fetchImpl.mock.calls[0];
+  const body = JSON.parse(String(init?.body));
+
+  expect(endpoint).toBe("https://example.test/v1/chat/completions");
+  expect(body).toMatchObject({
+    model: "deepseek-v4-flash",
+    response_format: { type: "json_object" },
+  });
+  expect(body.messages).toEqual([
+    expect.objectContaining({ role: "system" }),
+    { role: "user", content: "raw text" },
+  ]);
+  expect(body.messages[0].content).toContain("json");
+  expect(body.messages[0].content).toContain("keyPoints");
+  expect(body.input).toBeUndefined();
+  expect(body.text).toBeUndefined();
+});
+
+test("maps invalid summary JSON to a processing failure", async () => {
+  const fetchImpl = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ output_text: "not json" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+  ) as typeof fetch;
+  const provider = createOpenAiSummaryProvider({
+    apiKey: "key",
+    endpoint: "https://example.test/responses",
+    fetchImpl,
+  });
+
+  await expect(
+    provider.summarize({
+      transcript: "raw text",
+      model: "gpt-5.5",
+    }),
+  ).rejects.toMatchObject({
+    code: "PROCESSING_FAILED",
+    message: "PROCESSING_FAILED: OpenAI summary returned invalid JSON",
+  });
+});
+
 test("maps OpenAI failures", async () => {
   const fetchImpl = vi.fn(
     async () => new Response("bad", { status: 503 }),

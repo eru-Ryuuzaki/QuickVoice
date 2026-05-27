@@ -41,8 +41,14 @@ export function Workbench({ status }: WorkbenchProps) {
   const activeBusy = mode === "tts" ? ttsResult.loading : sttResult.loading;
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[1280px] px-4 py-6 md:px-8">
-      <header className="mb-5 flex flex-col gap-4 border border-[var(--line)] bg-[var(--surface)] px-4 py-3 md:flex-row md:items-end md:justify-between">
+    <main
+      className="mx-auto min-h-screen w-full max-w-[1280px] bg-[var(--bg)] px-4 py-6 text-[var(--text)] md:px-8"
+      data-testid="quickvoice-shell"
+    >
+      <header
+        className="mb-5 flex flex-col gap-4 rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 py-4 shadow-[0_1px_0_rgba(66,55,43,0.06)] md:flex-row md:items-end md:justify-between"
+        data-testid="quickvoice-header"
+      >
         <div className="flex flex-col">
           <span className="text-[0.65rem] uppercase tracking-[0.18em] text-[var(--muted)]">
             Speech Console
@@ -60,7 +66,7 @@ export function Workbench({ status }: WorkbenchProps) {
       </header>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_2px_1fr]">
-        <div className="border border-[var(--line)] bg-[var(--surface)] p-4">
+        <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_1px_0_rgba(66,55,43,0.04)]">
           {mode === "tts" ? (
             <TtsForm
               onResultChange={setTtsResult}
@@ -77,13 +83,15 @@ export function Workbench({ status }: WorkbenchProps) {
 
         <div
           aria-hidden="true"
-          className={`hidden md:block ${activeBusy ? "bg-[var(--accent)]" : "bg-[var(--line)]"} transition-colors duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]`}
+          className={`hidden rounded-full md:block ${activeBusy ? "bg-[var(--accent)]" : "bg-[var(--line-strong)]"} transition-colors duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]`}
           data-testid="activity-rail"
         />
 
-        <div className="border border-[var(--line)] bg-[var(--surface)] p-4">
+        <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_1px_0_rgba(66,55,43,0.04)]">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xl">{mode === "tts" ? "Audio Output" : "Transcript"}</h2>
+            <h2 className="font-sans text-xl">
+              {mode === "tts" ? "Audio Output" : "Transcript"}
+            </h2>
           </div>
 
           {mode === "tts" ? (

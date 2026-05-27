@@ -75,7 +75,7 @@ export function SummaryPanel({
 
   if (!summaryStatus.available) {
     return (
-      <div className="rounded border border-[var(--line)] bg-[var(--surface-2)] p-4 text-sm text-[var(--muted)]">
+      <div className="rounded-md border border-[var(--line)] bg-[var(--surface-2)] p-4 text-sm text-[var(--muted)]">
         Summary unavailable
       </div>
     );
@@ -93,7 +93,7 @@ export function SummaryPanel({
         />
 
         <button
-          className="self-end rounded border border-[var(--accent)] bg-[var(--accent)] px-4 py-2 text-xs tracking-[0.08em] text-[#121212] transition-transform duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+          className="self-end rounded-md border border-[var(--accent)] bg-[var(--accent)] px-4 py-2 text-sm text-[var(--accent-contrast)] transition-all duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px hover:border-[var(--accent-hover)] hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={state.loading || !transcript.trim()}
           onClick={handleSummarize}
           type="button"
@@ -103,13 +103,13 @@ export function SummaryPanel({
       </div>
 
       {state.error ? (
-        <div className="rounded border border-[#7c2a2a] bg-[#2a1717] p-4 text-sm text-[#ffb4b4]">
+        <div className="rounded-md border border-[var(--danger-line)] bg-[var(--danger-surface)] p-4 text-sm text-[var(--danger-text)]">
           {state.error}
         </div>
       ) : null}
 
       {state.result ? (
-        <div className="space-y-2 rounded border border-[var(--line)] bg-[var(--surface-2)] p-4">
+        <div className="space-y-2 rounded-md border border-[var(--line)] bg-[var(--surface-2)] p-4">
           <h3 className="text-base">{state.result.title || "Summary"}</h3>
           <p className="text-sm leading-[1.6] text-[var(--text)]">
             {state.result.summary}

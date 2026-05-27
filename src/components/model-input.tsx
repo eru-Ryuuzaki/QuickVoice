@@ -76,7 +76,7 @@ export function ModelInput({
         {label}
       </span>
       <select
-        className="w-full rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] outline-none focus-visible:border-[var(--accent)]"
+        className="w-full rounded-md border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] outline-none transition-colors duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] focus-visible:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
         disabled={disabled}
         id={inputId}
         onChange={(event) => handleChange(event.target.value)}
